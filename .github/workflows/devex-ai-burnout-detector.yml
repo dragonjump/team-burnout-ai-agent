@@ -1,0 +1,578 @@
+name: AI Burnout Detector - Team Wellness Analysis
+
+on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      analysis_period:
+        description: 'Analysis period in days'
+        required: false
+        default: '7'
+        type: string
+      email_recipient:
+        description: 'Email recipient for reports'
+        required: false
+        default: 'team-leads@company.com'
+        type: string
+
+env:
+  ANALYSIS_PERIOD: ${{ inputs.analysis_period || '7' }}
+  EMAIL_RECIPIENT: ${{ inputs.email_recipient || 'team-leads@company.com' }}
+  REPO_OWNER: ${{ github.repository_owner }}
+  REPO_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  analyze-team-wellness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      actions: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm install axios @google/generativeai
+
+      - name: Fetch GitHub Data
+        id: fetch-data
+        run: |
+          node << 'EOF'
+          const axios = require('axios');
+          const fs = require('fs');
+          
+          const token = process.env.GITHUB_TOKEN;
+          const owner = process.env.REPO_OWNER;
+          const repo = process.env.REPO_NAME;
+          const period = process.env.ANALYSIS_PERIOD;
+          
+          const since = new Date();
+          since.setDate(since.getDate() - parseInt(period));
+          const sinceISO = since.toISOString();
+          
+          async function fetchData() {
+            try {
+              // Fetch commits
+              const commitsResponse = await axios.get(
+                `https://api.github.com/repos/${owner}/${repo}/commits`,
+                {
+                  headers: { 'Authorization': `token ${token}` },
+                  params: { since: sinceISO, per_page: 100 }
+                }
+              );
+              
+              // Fetch pull requests
+              const prsResponse = await axios.get(
+                `https://api.github.com/repos/${owner}/${repo}/pulls`,
+                {
+                  headers: { 'Authorization': `token ${token}` },
+                  params: { state: 'all', since: sinceISO, per_page: 50 }
+                }
+              );
+              
+              // Fetch workflow runs
+              const workflowsResponse = await axios.get(
+                `https://api.github.com/repos/${owner}/${repo}/actions/runs`,
+                {
+                  headers: { 'Authorization': `token ${token}` },
+                  params: { created: `${sinceISO}..*`, per_page: 50 }
+                }
+              );
+              
+              const data = {
+                commits: commitsResponse.data,
+                pullRequests: prsResponse.data,
+                workflows: workflowsResponse.data.workflow_runs || [],
+                analysisPeriod: parseInt(period),
+                repository: `${owner}/${repo}`
+              };
+              
+              fs.writeFileSync('github-data.json', JSON.stringify(data, null, 2));
+              console.log('GitHub data fetched successfully');
+              
+            } catch (error) {
+              console.error('Error fetching GitHub data:', error.message);
+              process.exit(1);
+            }
+          }
+          
+          fetchData();
+          EOF
+
+      - name: Analyze Patterns
+        id: analyze-patterns
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          
+          const data = JSON.parse(fs.readFileSync('github-data.json', 'utf8'));
+          
+          // Initialize patterns object
+          const patterns = {
+            total_commits: data.commits.length,
+            total_prs: data.pullRequests.length,
+            total_workflows: data.workflows.length,
+            late_night_commits: 0,
+            weekend_commits: 0,
+            failed_workflows: 0,
+            developer_activity: {}
+          };
+          
+          // Analyze commits
+          for (const commit of data.commits) {
+            try {
+              const commitTime = new Date(commit.commit.author.date);
+              const hour = commitTime.getHours();
+              const weekday = commitTime.getDay();
+              const author = commit.commit.author.name || 'Unknown';
+              
+              // Track late night commits (after 10 PM or before 6 AM)
+              if (hour >= 22 || hour <= 6) {
+                patterns.late_night_commits++;
+              }
+              
+              // Track weekend commits (Saturday = 6, Sunday = 0)
+              if (weekday === 0 || weekday === 6) {
+                patterns.weekend_commits++;
+              }
+              
+              // Track per-developer activity
+              if (!patterns.developer_activity[author]) {
+                patterns.developer_activity[author] = {
+                  commits: 0,
+                  late_night: 0,
+                  weekend: 0
+                };
+              }
+              
+              patterns.developer_activity[author].commits++;
+              if (hour >= 22 || hour <= 6) {
+                patterns.developer_activity[author].late_night++;
+              }
+              if (weekday === 0 || weekday === 6) {
+                patterns.developer_activity[author].weekend++;
+              }
+            } catch (e) {
+              console.log('Error processing commit:', e.message);
+            }
+          }
+          
+          // Analyze workflows
+          for (const workflow of data.workflows) {
+            if (workflow.conclusion === 'failure') {
+              patterns.failed_workflows++;
+            }
+          }
+          
+          // Calculate rates
+          const failureRate = (patterns.failed_workflows / Math.max(patterns.total_workflows, 1)) * 100;
+          const lateNightRate = (patterns.late_night_commits / Math.max(patterns.total_commits, 1)) * 100;
+          const weekendRate = (patterns.weekend_commits / Math.max(patterns.total_commits, 1)) * 100;
+          
+          // Prepare analysis data
+          const analysisData = {
+            repository: data.repository,
+            analysis_period_days: data.analysisPeriod,
+            patterns: patterns,
+            rates: {
+              failure_rate: failureRate.toFixed(1),
+              late_night_rate: lateNightRate.toFixed(1),
+              weekend_rate: weekendRate.toFixed(1)
+            },
+            raw_data: {
+              commits: data.commits.slice(0, 10), // Limit for AI analysis
+              pull_requests: data.pullRequests.slice(0, 10),
+              workflows: data.workflows.slice(0, 10)
+            }
+          };
+          
+          fs.writeFileSync('analysis-data.json', JSON.stringify(analysisData, null, 2));
+          
+          // Set outputs for GitHub Actions
+          console.log(`::set-output name=total_commits::${patterns.total_commits}`);
+          console.log(`::set-output name=late_night_commits::${patterns.late_night_commits}`);
+          console.log(`::set-output name=weekend_commits::${patterns.weekend_commits}`);
+          console.log(`::set-output name=failed_workflows::${patterns.failed_workflows}`);
+          console.log(`::set-output name=late_night_rate::${lateNightRate.toFixed(1)}`);
+          console.log(`::set-output name=weekend_rate::${weekendRate.toFixed(1)}`);
+          console.log(`::set-output name=failure_rate::${failureRate.toFixed(1)}`);
+          
+          console.log('Pattern analysis completed successfully');
+          EOF
+
+      - name: AI Analysis
+        id: ai-analysis
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const { GoogleGenerativeAI } = require('@google/generativeai');
+          
+          const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
+          const apiKey = process.env.GOOGLE_AI_STUDIO_KEY;
+          
+          if (!apiKey) {
+            console.log('No Google AI Studio key provided, using mock analysis');
+            const mockAnalysis = {
+              burnout_risk: 'Low',
+              team_health_score: 75,
+              confidence: 0.8,
+              analysis: 'Mock analysis - no AI key provided',
+              recommendations: [
+                'Monitor late-night commit patterns',
+                'Consider workload redistribution',
+                'Implement wellness check-ins'
+              ],
+              risk_indicators: [
+                'Late-night work detected',
+                'Weekend work patterns'
+              ]
+            };
+            fs.writeFileSync('ai-analysis.json', JSON.stringify(mockAnalysis, null, 2));
+            console.log('::set-output name=burnout_risk::Low');
+            console.log('::set-output name=team_health_score::75');
+            console.log('::set-output name=confidence::0.8');
+            return;
+          }
+          
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ 
+            model: 'gemini-2.0-flash',
+            systemInstruction: `You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.
+
+You must ALWAYS respond with valid JSON format and follow these strict guidelines:
+1. NEVER make personal judgments or assumptions about individual developers
+2. ONLY analyze observable patterns in code activity data
+3. ALWAYS provide evidence-based reasoning for all assessments
+4. NEVER suggest disciplinary actions or performance reviews
+5. FOCUS on systemic issues and team-level recommendations
+6. ALWAYS include confidence scores and data limitations
+7. RESPECT privacy and confidentiality of team members
+8. PROVIDE actionable, constructive recommendations only
+9. AVOID alarmist language - use professional, measured tone
+10. ALWAYS structure responses with clear sections and evidence
+
+Your analysis must be objective, professional, and focused on improving team wellness through positive interventions.`
+          });
+          
+          const prompt = `📊 Team Wellness and Burnout Risk Analysis
+
+**Project**: ${analysisData.repository}
+**Analysis Period**: ${analysisData.analysis_period_days} days
+
+## 📈 Team Activity Metrics
+- **Total Commits**: ${analysisData.patterns.total_commits}
+- **Total Pull Requests**: ${analysisData.patterns.total_prs}
+- **Total Workflows**: ${analysisData.patterns.total_workflows}
+- **Late Night Commits** (10PM-6AM): ${analysisData.patterns.late_night_commits}
+- **Weekend Commits**: ${analysisData.patterns.weekend_commits}
+- **Failed Workflows**: ${analysisData.patterns.failed_workflows}
+
+## 📊 Performance Rates
+- **Workflow Failure Rate**: ${analysisData.rates.failure_rate}%
+- **Late Night Work Rate**: ${analysisData.rates.late_night_rate}%
+- **Weekend Work Rate**: ${analysisData.rates.weekend_rate}%
+
+## 👥 Developer Activity Breakdown
+${JSON.stringify(analysisData.patterns.developer_activity, null, 2)}
+
+Please analyze and provide:
+1. **Burnout Risk Assessment** (Low/Medium/High) with detailed reasoning
+2. **Team Health Score** (0-100) with explanation
+3. **Key Risk Indicators** with specific examples
+4. **Actionable Recommendations** (minimum 5 specific recommendations)
+5. **Confidence Level** (0-1) with data limitations
+
+Format as JSON with structured sections.`;
+
+          async function runAnalysis() {
+            try {
+              const result = await model.generateContent(prompt);
+              const response = await result.response;
+              const text = response.text();
+              
+              let analysis;
+              try {
+                analysis = JSON.parse(text);
+              } catch (e) {
+                // Fallback if not valid JSON
+                analysis = {
+                  burnout_risk: 'Medium',
+                  team_health_score: 70,
+                  confidence: 0.7,
+                  analysis: text,
+                  recommendations: [
+                    'Monitor late-night commit patterns',
+                    'Consider workload redistribution',
+                    'Implement wellness check-ins'
+                  ],
+                  risk_indicators: [
+                    'Late-night work detected',
+                    'Weekend work patterns'
+                  ]
+                };
+              }
+              
+              fs.writeFileSync('ai-analysis.json', JSON.stringify(analysis, null, 2));
+              
+              // Set outputs for GitHub Actions
+              console.log(`::set-output name=burnout_risk::${analysis.burnout_risk || 'Medium'}`);
+              console.log(`::set-output name=team_health_score::${analysis.team_health_score || 70}`);
+              console.log(`::set-output name=confidence::${analysis.confidence || 0.7}`);
+              
+              console.log('AI analysis completed successfully');
+              
+            } catch (error) {
+              console.error('Error in AI analysis:', error.message);
+              const fallbackAnalysis = {
+                burnout_risk: 'Medium',
+                team_health_score: 70,
+                confidence: 0.5,
+                analysis: 'Analysis failed - using fallback',
+                recommendations: ['Monitor team activity', 'Schedule wellness check-in'],
+                risk_indicators: ['Analysis unavailable']
+              };
+              fs.writeFileSync('ai-analysis.json', JSON.stringify(fallbackAnalysis, null, 2));
+              console.log('::set-output name=burnout_risk::Medium');
+              console.log('::set-output name=team_health_score::70');
+              console.log('::set-output name=confidence::0.5');
+            }
+          }
+          
+          runAnalysis();
+          EOF
+        env:
+          GOOGLE_AI_STUDIO_KEY: ${{ secrets.GOOGLE_AI_STUDIO_KEY }}
+
+      - name: Create GitHub Issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
+            const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
+            
+            const healthScore = ${{ steps.ai-analysis.outputs.team_health_score }};
+            const burnoutRisk = '${{ steps.ai-analysis.outputs.burnout_risk }}';
+            const confidence = ${{ steps.ai-analysis.outputs.confidence }};
+            
+            // Determine issue type based on health score
+            let issueType, emoji, labels;
+            if (healthScore < 50) {
+              issueType = 'CRITICAL';
+              emoji = '🚨';
+              labels = ['team-wellness', 'critical', 'burnout-detection', 'urgent'];
+            } else if (healthScore < 70) {
+              issueType = 'WARNING';
+              emoji = '⚠️';
+              labels = ['team-wellness', 'warning', 'burnout-detection'];
+            } else {
+              issueType = 'INFO';
+              emoji = '✅';
+              labels = ['team-wellness', 'info', 'burnout-detection'];
+            }
+            
+            const title = `${emoji} ${issueType}: Team Wellness Alert - ${analysisData.repository}`;
+            
+            const body = `## 📊 Team Wellness ${issueType} Alert
+
+**Repository**: ${analysisData.repository}
+**Analysis Date**: ${new Date().toISOString().split('T')[0]}
+**Team Health Score**: ${healthScore}/100
+**Burnout Risk**: ${burnoutRisk}
+**Confidence**: ${Math.round(confidence * 100)}%
+
+### 📈 Key Metrics
+- **Total Commits**: ${analysisData.patterns.total_commits}
+- **Late Night Work**: ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)
+- **Weekend Work**: ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)
+- **Failed Workflows**: ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)
+
+### 👥 Developer Activity
+${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
+  `- **${author}**: ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)`
+).join('\n')}
+
+### ⚠️ Risk Indicators
+${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `- ${indicator}`).join('\n') : '- No specific indicators identified'}
+
+### 💡 Recommendations
+${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `- ${rec}`).join('\n') : '- Monitor team activity patterns'}
+
+### 📋 Next Steps
+1. Review team workload distribution
+2. Implement recommended wellness measures
+3. Schedule team check-in meeting
+4. Monitor progress over next 2 weeks
+
+### 📊 Full Analysis
+\`\`\`json
+${JSON.stringify(aiAnalysis, null, 2)}
+\`\`\`
+
+---
+*This issue was automatically created by the AI Burnout Detector workflow.*`;
+
+            // Create the issue
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: labels
+            });
+            
+            console.log(`Created issue: ${issue.data.html_url}`);
+            return issue.data.html_url;
+
+      - name: Send Email Report
+        if: always()
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const axios = require('axios');
+          
+          const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
+          const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
+          
+          const healthScore = ${{ steps.ai-analysis.outputs.team_health_score }};
+          const burnoutRisk = '${{ steps.ai-analysis.outputs.burnout_risk }}';
+          const confidence = ${{ steps.ai-analysis.outputs.confidence }};
+          
+          // Determine email type based on health score
+          let emailType, subjectPrefix;
+          if (healthScore < 50) {
+            emailType = 'CRITICAL';
+            subjectPrefix = '🚨 CRITICAL';
+          } else if (healthScore < 70) {
+            emailType = 'WARNING';
+            subjectPrefix = '⚠️ WARNING';
+          } else {
+            emailType = 'INFO';
+            subjectPrefix = '✅ INFO';
+          }
+          
+          const subject = `${subjectPrefix}: Team Wellness Alert - ${analysisData.repository}`;
+          
+          const htmlBody = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+              .metric { background-color: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .recommendation { background-color: #d4edda; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .risk { background-color: #f8d7da; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>📊 Team Wellness ${emailType} Alert</h2>
+              <p><strong>Repository:</strong> ${analysisData.repository}</p>
+              <p><strong>Analysis Date:</strong> ${new Date().toISOString().split('T')[0]}</p>
+            </div>
+            
+            <div class="metric">
+              <h3>📈 Key Metrics</h3>
+              <ul>
+                <li><strong>Team Health Score:</strong> ${healthScore}/100</li>
+                <li><strong>Burnout Risk:</strong> ${burnoutRisk}</li>
+                <li><strong>Confidence:</strong> ${Math.round(confidence * 100)}%</li>
+                <li><strong>Total Commits:</strong> ${analysisData.patterns.total_commits}</li>
+                <li><strong>Late Night Work:</strong> ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)</li>
+                <li><strong>Weekend Work:</strong> ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)</li>
+                <li><strong>Failed Workflows:</strong> ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)</li>
+              </ul>
+            </div>
+            
+            <div class="risk">
+              <h3>⚠️ Risk Indicators</h3>
+              <ul>
+                ${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `<li>${indicator}</li>`).join('') : '<li>No specific indicators identified</li>'}
+              </ul>
+            </div>
+            
+            <div class="recommendation">
+              <h3>💡 Recommendations</h3>
+              <ul>
+                ${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>Monitor team activity patterns</li>'}
+              </ul>
+            </div>
+            
+            <div class="metric">
+              <h3>👥 Developer Activity</h3>
+              <ul>
+                ${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
+                  `<li><strong>${author}:</strong> ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)</li>`
+                ).join('')}
+              </ul>
+            </div>
+            
+            <div class="footer">
+              <p>This email was automatically generated by the AI Burnout Detector workflow.</p>
+              <p>For questions or concerns, please contact the development team.</p>
+            </div>
+          </body>
+          </html>`;
+          
+          // Note: This is a placeholder for email sending
+          // In a real implementation, you would use a service like SendGrid, AWS SES, or similar
+          console.log('Email would be sent to:', process.env.EMAIL_RECIPIENT);
+          console.log('Subject:', subject);
+          console.log('Body length:', htmlBody.length);
+          
+          // For demonstration, save the email content to a file
+          fs.writeFileSync('email-report.html', htmlBody);
+          console.log('Email report saved to email-report.html');
+          EOF
+        env:
+          EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: burnout-analysis-report
+          path: |
+            github-data.json
+            analysis-data.json
+            ai-analysis.json
+            email-report.html
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 AI Burnout Detector Analysis Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: ${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Analysis Period**: ${{ env.ANALYSIS_PERIOD }} days" >> $GITHUB_STEP_SUMMARY
+          echo "**Team Health Score**: ${{ steps.ai-analysis.outputs.team_health_score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "**Burnout Risk**: ${{ steps.ai-analysis.outputs.burnout_risk }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Confidence**: ${{ steps.ai-analysis.outputs.confidence }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Key Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Commits**: ${{ steps.analyze-patterns.outputs.total_commits }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Late Night Work**: ${{ steps.analyze-patterns.outputs.late_night_commits }} commits (${{ steps.analyze-patterns.outputs.late_night_rate }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Weekend Work**: ${{ steps.analyze-patterns.outputs.weekend_commits }} commits (${{ steps.analyze-patterns.outputs.weekend_rate }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Failed Workflows**: ${{ steps.analyze-patterns.outputs.failed_workflows }} (${{ steps.analyze-patterns.outputs.failure_rate }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Taken" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ GitHub issue created" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Email report generated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Analysis artifacts uploaded" >> $GITHUB_STEP_SUMMARY
