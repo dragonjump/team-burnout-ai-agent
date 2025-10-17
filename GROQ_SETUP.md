@@ -12,7 +12,7 @@ Go to your repository → Settings → Secrets and variables → Actions, then a
 #### Optional Secrets (for email notifications):
 - **`EMAIL_SERVICE_API_KEY`** - If you want to send real emails (SendGrid, AWS SES, etc.)
 - **`EMAIL_FROM_ADDRESS`** - Sender email address
-
+ 
 ### 2. Groq API Key Setup
 
 1. Visit [Groq Console](https://console.groq.com/)
