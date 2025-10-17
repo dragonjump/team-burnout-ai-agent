@@ -1,9 +1,8 @@
 name: AI Burnout Detector - Team Wellness Analysis
 
 on:
-  schedule:
-    # Run every Monday at 9 AM UTC
-    - cron: '0 9 * * 1'
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
     inputs:
       analysis_period:
@@ -22,6 +21,7 @@ env:
   EMAIL_RECIPIENT: ${{ inputs.email_recipient || 'team-leads@company.com' }}
   REPO_OWNER: ${{ github.repository_owner }}
   REPO_NAME: ${{ github.event.repository.name }}
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
 jobs:
   analyze-team-wellness:
@@ -45,7 +45,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install axios @google/generativeai
+          npm install axios groq-sdk
 
       - name: Fetch GitHub Data
         id: fetch-data
@@ -218,13 +218,13 @@ jobs:
         run: |
           node << 'EOF'
           const fs = require('fs');
-          const { GoogleGenerativeAI } = require('@google/generativeai');
+          const Groq = require('groq-sdk');
           
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
-          const apiKey = process.env.GOOGLE_AI_STUDIO_KEY;
+          const apiKey = process.env.GROQ_API_KEY;
           
           if (!apiKey) {
-            console.log('No Google AI Studio key provided, using mock analysis');
+            console.log('No Groq API key provided, using mock analysis');
             const mockAnalysis = {
               burnout_risk: 'Low',
               team_health_score: 75,
@@ -247,10 +247,11 @@ jobs:
             return;
           }
           
-          const genAI = new GoogleGenerativeAI(apiKey);
-          const model = genAI.getGenerativeModel({ 
-            model: 'gemini-2.0-flash',
-            systemInstruction: `You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.
+          const groq = new Groq({
+            apiKey: apiKey,
+          });
+          
+          const systemPrompt = `You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.
 
 You must ALWAYS respond with valid JSON format and follow these strict guidelines:
 1. NEVER make personal judgments or assumptions about individual developers
@@ -264,8 +265,7 @@ You must ALWAYS respond with valid JSON format and follow these strict guideline
 9. AVOID alarmist language - use professional, measured tone
 10. ALWAYS structure responses with clear sections and evidence
 
-Your analysis must be objective, professional, and focused on improving team wellness through positive interventions.`
-          });
+Your analysis must be objective, professional, and focused on improving team wellness through positive interventions.`;
           
           const prompt = `📊 Team Wellness and Burnout Risk Analysis
 
@@ -299,9 +299,23 @@ Format as JSON with structured sections.`;
 
           async function runAnalysis() {
             try {
-              const result = await model.generateContent(prompt);
-              const response = await result.response;
-              const text = response.text();
+              const result = await groq.chat.completions.create({
+                model: 'llama3-8b-8192',
+                messages: [
+                  {
+                    role: 'system',
+                    content: systemPrompt
+                  },
+                  {
+                    role: 'user',
+                    content: prompt
+                  }
+                ],
+                temperature: 0.7,
+                max_tokens: 4000
+              });
+              
+              const text = result.choices[0].message.content;
               
               let analysis;
               try {
@@ -354,7 +368,7 @@ Format as JSON with structured sections.`;
           runAnalysis();
           EOF
         env:
-          GOOGLE_AI_STUDIO_KEY: ${{ secrets.GOOGLE_AI_STUDIO_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
       - name: Create GitHub Issue
         if: always()
