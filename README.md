@@ -4,7 +4,7 @@
 
 🤖 **Automated AI-powered team wellness monitoring** that analyzes developer activity patterns to detect early signs of burnout and team stress.
 
-## 🎯 What It Does
+## 🎯 What It Does 
 
 The AI Burnout Detector is a GitHub Actions workflow that automatically:
 
