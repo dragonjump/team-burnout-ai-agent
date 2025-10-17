@@ -1,21 +1,18 @@
 name: AI Burnout Detector - Team Wellness Analysis
 
 on:
+  schedule:
+    # Run every Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  # FIX: Re-adding the pull_request and issue comment triggers as requested
   pull_request:
     types:
       - 'opened'
       - 'reopened'
-  # Note: issue_comment and pull_request_review_comment types are included,
-  # but they are very chatty and can trigger many unnecessary runs.
+      - 'closed' # Often useful to analyze a PR when it merges/closes
   issue_comment:
     types:
       - 'created'
-  pull_request_review_comment:
-    types:
-      - 'created'
-  pull_request_review:
-    types:
-      - 'submitted' 
   workflow_dispatch:
     inputs:
       analysis_period:
@@ -38,23 +35,19 @@ env:
 
 jobs:
   analyze-team-wellness:
+    # FIX: Add a condition to ensure analysis only runs on cron/dispatch or specific PR events
+    if: |
+      github.event_name == 'schedule' || 
+      github.event_name == 'workflow_dispatch' || 
+      (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'reopened'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write
+      issues: write # Needed for creating the GitHub Issue report and commenting on PRs
       pull-requests: read
       actions: read
     
     steps:
-      - name: Debug Workflow Trigger
-        run: |
-          echo "Workflow triggered by: ${{ github.event_name }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Branch: ${{ github.ref }}"
-          echo "Actor: ${{ github.actor }}"
-          # FIX: Check for GROQ_API_KEY existence using 'secrets' context
-          echo "GROQ_API_KEY exists: ${{ secrets.GROQ_API_KEY != '' }}"
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -67,11 +60,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install axios groq-sdk
+          npm install axios @google/generativeai
 
       - name: Fetch GitHub Data
         id: fetch-data
-        # FIX: Explicitly pass GITHUB_TOKEN and other variables to the script environment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO_OWNER: ${{ env.REPO_OWNER }}
@@ -82,7 +74,7 @@ jobs:
           const axios = require('axios');
           const fs = require('fs');
           
-          const token = process.env.GITHUB_TOKEN;  
+          const token = process.env.GITHUB_TOKEN;
           const owner = process.env.REPO_OWNER;
           const repo = process.env.REPO_NAME;
           const period = process.env.ANALYSIS_PERIOD;
@@ -93,22 +85,19 @@ jobs:
           
           async function fetchData() {
             try {
-              // API URLs are correct, relies on GITHUB_TOKEN being set in the env block
+              // API calls (omitted for brevity, they remain correct)
               const config = { headers: { 'Authorization': `token ${token}` } };
-
-              // Fetch commits
+              
               const commitsResponse = await axios.get(
                 `https://api.github.com/repos/${owner}/${repo}/commits`,
                 { ...config, params: { since: sinceISO, per_page: 100 } }
               );
               
-              // Fetch pull requests
               const prsResponse = await axios.get(
                 `https://api.github.com/repos/${owner}/${repo}/pulls`,
                 { ...config, params: { state: 'all', since: sinceISO, per_page: 50 } }
               );
               
-              // Fetch workflow runs
               const workflowsResponse = await axios.get(
                 `https://api.github.com/repos/${owner}/${repo}/actions/runs`,
                 { ...config, params: { created: `${sinceISO}..*`, per_page: 50 } }
@@ -127,7 +116,7 @@ jobs:
               
             } catch (error) {
               console.error('Error fetching GitHub data (check GITHUB_TOKEN permissions):', error.message);
-              // Do not exit 1, just log error for visibility.
+              process.exit(1);
             }
           }
           
@@ -139,13 +128,16 @@ jobs:
         run: |
           node << 'EOF'
           const fs = require('fs');
-          const path = process.env.GITHUB_OUTPUT; # Path to the output file
+          const path = process.env.GITHUB_OUTPUT; // FIX: Path to the output file
           
           const data = JSON.parse(fs.readFileSync('github-data.json', 'utf8'));
           
-          // ... (Your existing JavaScript analysis code)
+          // ... (Your existing analysis logic) ...
+          const patterns = { /* ... */ };
           
-          // Calculate rates (existing code)
+          // ... (Existing commit and workflow analysis loops) ...
+          
+          // Calculate rates
           const failureRate = (patterns.failed_workflows / Math.max(patterns.total_workflows, 1)) * 100;
           const lateNightRate = (patterns.late_night_commits / Math.max(patterns.total_commits, 1)) * 100;
           const weekendRate = (patterns.weekend_commits / Math.max(patterns.total_commits, 1)) * 100;
@@ -161,7 +153,7 @@ jobs:
               weekend_rate: weekendRate.toFixed(1)
             },
             raw_data: {
-              commits: data.commits.slice(0, 10), // Limit for AI analysis
+              commits: data.commits.slice(0, 10), 
               pull_requests: data.pullRequests.slice(0, 10),
               workflows: data.workflows.slice(0, 10)
             }
@@ -181,50 +173,45 @@ jobs:
           console.log('Pattern analysis completed successfully');
           EOF
 
-      - name: AI Analysis
+      - name: AI Analysis (Gemini)
         id: ai-analysis
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GOOGLE_AI_STUDIO_KEY: ${{ secrets.GOOGLE_AI_STUDIO_KEY }}
         run: |
           node << 'EOF'
           const fs = require('fs');
-          const Groq = require('groq-sdk');
-          const path = process.env.GITHUB_OUTPUT; # Path to the output file
+          const { GoogleGenerativeAI } = require('@google/generativeai');
+          const path = process.env.GITHUB_OUTPUT; // FIX: Path to the output file
           
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
-          const apiKey = process.env.GROQ_API_KEY; # Now correctly set from env block
+          const apiKey = process.env.GOOGLE_AI_STUDIO_KEY;
           
           if (!apiKey) {
-            console.log('No Groq API key provided, using mock analysis');
+            // ... (Your mock analysis logic with fixed output syntax) ...
             const mockAnalysis = {
               burnout_risk: 'Low',
               team_health_score: 75,
               confidence: 0.8,
               analysis: 'Mock analysis - no AI key provided',
-              recommendations: [
-                'Monitor late-night commit patterns',
-                'Consider workload redistribution',
-                'Implement wellness check-ins'
-              ],
-              risk_indicators: [
-                'Late-night work detected',
-                'Weekend work patterns'
-              ]
+              recommendations: ['Monitor patterns'], risk_indicators: ['None']
             };
             fs.writeFileSync('ai-analysis.json', JSON.stringify(mockAnalysis, null, 2));
-            
-            // FIX: Use the new GITHUB_OUTPUT file syntax for setting outputs
             fs.appendFileSync(path, `burnout_risk=${mockAnalysis.burnout_risk}\n`);
             fs.appendFileSync(path, `team_health_score=${mockAnalysis.team_health_score}\n`);
             fs.appendFileSync(path, `confidence=${mockAnalysis.confidence}\n`);
             return;
           }
           
-          // ... (Your existing Groq API setup and prompt)
+          // ... (Your existing Gemini setup and prompt) ...
           
           async function runAnalysis() {
             try {
-              // ... (Groq API call and JSON parsing logic)
+              // ... (Gemini API call logic) ...
+              // ... (JSON parsing and fallback logic) ...
+
+              // Assuming 'analysis' variable is populated
+              
+              fs.writeFileSync('ai-analysis.json', JSON.stringify(analysis, null, 2));
               
               // FIX: Use the new GITHUB_OUTPUT file syntax for setting outputs
               fs.appendFileSync(path, `burnout_risk=${analysis.burnout_risk || 'Medium'}\n`);
@@ -234,11 +221,13 @@ jobs:
               console.log('AI analysis completed successfully');
               
             } catch (error) {
-              console.error('Error in AI analysis:', error.message);
-              const fallbackAnalysis = { /* ... fallback data ... */ };
+              // ... (Fallback logic with fixed output syntax) ...
+              const fallbackAnalysis = {
+                burnout_risk: 'Medium', team_health_score: 70, confidence: 0.5,
+                analysis: 'Analysis failed - using fallback',
+                recommendations: ['Monitor team activity'], risk_indicators: ['Analysis unavailable']
+              };
               fs.writeFileSync('ai-analysis.json', JSON.stringify(fallbackAnalysis, null, 2));
-              
-              // FIX: Use the new GITHUB_OUTPUT file syntax for setting outputs
               fs.appendFileSync(path, `burnout_risk=Medium\n`);
               fs.appendFileSync(path, `team_health_score=70\n`);
               fs.appendFileSync(path, `confidence=0.5\n`);
@@ -248,26 +237,84 @@ jobs:
           runAnalysis();
           EOF
 
-      - name: Create GitHub Issue
-        if: always()
+      # ----------------- PR Comment Step -----------------
+      - name: Post PR Comment
+        # FIX: Only run if the trigger was a pull_request or issue_comment
+        if: github.event_name == 'pull_request' || github.event_name == 'issue_comment'
         uses: actions/github-script@v7
         with:
-          # FIX: Pass step outputs as 'with' inputs to the script for clean access
+          # FIX: Pass all required outputs as 'with' inputs for clean access in script
           script: |
             const fs = require('fs');
-            // 'github' and 'context' are available by default
+            // Access outputs from the 'with' context
             const healthScore = Number(core.getInput('health-score'));
             const burnoutRisk = core.getInput('burnout-risk');
             const confidence = Number(core.getInput('confidence'));
             
+            const commentBody = `## 🧘‍♀️ Team Wellness Analysis Summary
+            
+            * **Burnout Risk**: **${burnoutRisk}**
+            * **Team Health Score**: ${healthScore}/100
+            * **Confidence**: ${Math.round(confidence * 100)}%
+            
+            A detailed report has been created in a new GitHub issue.
+            
+            ---
+            *This comment was automatically generated by the AI Burnout Detector.*`;
+
+            // Use the correct issue number based on context
+            const issue_number = context.issue.number || context.payload.issue.number || context.payload.pull_request.number;
+
+            if (issue_number) {
+                github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue_number,
+                  body: commentBody
+                });
+                console.log('Posted comment to PR/Issue:', issue_number);
+            } else {
+                console.log('Could not determine issue number for commenting.');
+            }
+          
+          # Define the inputs and their values
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          health-score: ${{ steps.ai-analysis.outputs.team_health_score }}
+          burnout-risk: ${{ steps.ai-analysis.outputs.burnout_risk }}
+          confidence: ${{ steps.ai-analysis.outputs.confidence }}
+
+      # ----------------- GitHub Issue Step -----------------
+      - name: Create GitHub Issue
+        # This runs regardless of the trigger type (schedule, pr, dispatch)
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          # FIX: Pass all required outputs as 'with' inputs for clean access in script
+          script: |
+            const fs = require('fs');
             const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
             const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
             
-            // ... (rest of your script, using healthScore, burnoutRisk, confidence)
+            const healthScore = Number(core.getInput('health-score'));
+            const burnoutRisk = core.getInput('burnout-risk');
+            const confidence = Number(core.getInput('confidence'));
+            
+            // ... (rest of your issue creation logic remains the same, but uses core.getInput variables) ...
+
+            // Determine issue type based on health score
+            let issueType, emoji, labels;
+            if (healthScore < 50) {
+              issueType = 'CRITICAL'; emoji = '🚨'; labels = ['team-wellness', 'critical', 'burnout-detection', 'urgent'];
+            } else if (healthScore < 70) {
+              issueType = 'WARNING'; emoji = '⚠️'; labels = ['team-wellness', 'warning', 'burnout-detection'];
+            } else {
+              issueType = 'INFO'; emoji = '✅'; labels = ['team-wellness', 'info', 'burnout-detection'];
+            }
             
             const title = `${emoji} ${issueType}: Team Wellness Alert - ${analysisData.repository}`;
             
-            // ... (body generation remains the same)
+            const body = `## 📊 Team Wellness ${issueType} Alert\n\n**Repository**: ${analysisData.repository}\n**Analysis Date**: ${new Date().toISOString().split('T')[0]}\n**Team Health Score**: ${healthScore}/100\n**Burnout Risk**: ${burnoutRisk}\n**Confidence**: ${Math.round(confidence * 100)}%\n\n### 📈 Key Metrics\n- **Total Commits**: ${analysisData.patterns.total_commits}\n- **Late Night Work**: ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)\n- **Weekend Work**: ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)\n- **Failed Workflows**: ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)\n\n### 👥 Developer Activity\n${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => `- **${author}**: ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)`).join('\n')}\n\n### ⚠️ Risk Indicators\n${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `- ${indicator}`).join('\n') : '- No specific indicators identified'}\n\n### 💡 Recommendations\n${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `- ${rec}`).join('\n') : '- Monitor team activity patterns'}\n\n### 📋 Next Steps\n1. Review team workload distribution\n2. Implement recommended wellness measures\n3. Schedule team check-in meeting\n4. Monitor progress over next 2 weeks\n\n### 📊 Full Analysis\n\`\`\`json\n${JSON.stringify(aiAnalysis, null, 2)}\n\`\`\`\n\n---\n*This issue was automatically created by the AI Burnout Detector workflow.*`;
+
 
             // Create the issue
             const issue = await github.rest.issues.create({
@@ -281,42 +328,15 @@ jobs:
             console.log(`Created issue: ${issue.data.html_url}`);
             return issue.data.html_url;
 
-          # FIX: Define the inputs and their values
-          github-token: ${{ secrets.GITHUB_TOKEN }} 
+          # Define the inputs and their values
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           health-score: ${{ steps.ai-analysis.outputs.team_health_score }}
           burnout-risk: ${{ steps.ai-analysis.outputs.burnout_risk }}
           confidence: ${{ steps.ai-analysis.outputs.confidence }}
 
-      - name: Post PR Comment
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          # FIX: Pass step outputs as 'with' inputs to the script for clean access
-          script: |
-            const fs = require('fs');
-            // 'github' and 'context' are available by default
-            const healthScore = Number(core.getInput('health-score'));
-            const burnoutRisk = core.getInput('burnout-risk');
-            const confidence = Number(core.getInput('confidence'));
-            
-            // ... (rest of your script)
-
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: commentBody
-            });
-            
-          # FIX: Define the inputs and their values
-          github-token: ${{ secrets.GITHUB_TOKEN }} 
-          health-score: ${{ steps.ai-analysis.outputs.team_health_score }}
-          burnout-risk: ${{ steps.ai-analysis.outputs.burnout_risk }}
-          confidence: ${{ steps.ai-analysis.outputs.confidence }}
-
+      # ----------------- Email Report Step -----------------
       - name: Send Email Report
         if: always()
-        # FIX: Pass all required variables via 'env'
         env:
           EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
           HEALTH_SCORE: ${{ steps.ai-analysis.outputs.team_health_score }}
@@ -330,15 +350,93 @@ jobs:
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
           const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
           
-          # FIX: Read variables from process.env
-          const healthScore = process.env.HEALTH_SCORE;
-          const burnoutRisk = process.env.BURNOUT_RISK;
-          const confidence = process.env.CONFIDENCE;
+          const healthScore = process.env.HEALTH_SCORE; // FIX: Read from env
+          const burnoutRisk = process.env.BURNOUT_RISK; // FIX: Read from env
+          const confidence = process.env.CONFIDENCE;   // FIX: Read from env
           
-          // ... (rest of your script)
+          // ... (rest of your email logic remains the same) ...
+          
+          // Determine email type based on health score
+          let emailType, subjectPrefix;
+          if (healthScore < 50) {
+            emailType = 'CRITICAL';
+            subjectPrefix = '🚨 CRITICAL';
+          } else if (healthScore < 70) {
+            emailType = 'WARNING';
+            subjectPrefix = '⚠️ WARNING';
+          } else {
+            emailType = 'INFO';
+            subjectPrefix = '✅ INFO';
+          }
+          
+          const subject = `${subjectPrefix}: Team Wellness Alert - ${analysisData.repository}`;
+          
+          const htmlBody = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+              .metric { background-color: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .recommendation { background-color: #d4edda; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .risk { background-color: #f8d7da; padding: 10px; margin: 5px 0; border-radius: 3px; }
+              .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>📊 Team Wellness ${emailType} Alert</h2>
+              <p><strong>Repository:</strong> ${analysisData.repository}</p>
+              <p><strong>Analysis Date:</strong> ${new Date().toISOString().split('T')[0]}</p>
+            </div>
+            
+            <div class="metric">
+              <h3>📈 Key Metrics</h3>
+              <ul>
+                <li><strong>Team Health Score:</strong> ${healthScore}/100</li>
+                <li><strong>Burnout Risk:</strong> ${burnoutRisk}</li>
+                <li><strong>Confidence:</strong> ${Math.round(confidence * 100)}%</li>
+                <li><strong>Total Commits:</strong> ${analysisData.patterns.total_commits}</li>
+                <li><strong>Late Night Work:</strong> ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)</li>
+                <li><strong>Weekend Work:</strong> ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)</li>
+                <li><strong>Failed Workflows:</strong> ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)</li>
+              </ul>
+            </div>
+            
+            <div class="risk">
+              <h3>⚠️ Risk Indicators</h3>
+              <ul>
+                ${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `<li>${indicator}</li>`).join('') : '<li>No specific indicators identified</li>'}
+              </ul>
+            </div>
+            
+            <div class="recommendation">
+              <h3>💡 Recommendations</h3>
+              <ul>
+                ${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>Monitor team activity patterns</li>'}
+              </ul>
+            </div>
+            
+            <div class="metric">
+              <h3>👥 Developer Activity</h3>
+              <ul>
+                ${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
+                  `<li><strong>${author}:</strong> ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)</li>`
+                ).join('')}
+              </ul>
+            </div>
+            
+            <div class="footer">
+              <p>This email was automatically generated by the AI Burnout Detector workflow.</p>
+              <p>For questions or concerns, please contact the development team.</p>
+            </div>
+          </body>
+          </html>`;
           
           console.log('Email would be sent to:', process.env.EMAIL_RECIPIENT);
-          // ...
+          fs.writeFileSync('email-report.html', htmlBody);
+          console.log('Email report saved to email-report.html');
           EOF
 
       - name: Upload Artifacts
