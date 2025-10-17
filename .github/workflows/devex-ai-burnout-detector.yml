@@ -139,7 +139,7 @@ jobs:
         run: |
           node << 'EOF'
           const fs = require('fs');
-          const path = process.env.GITHUB_OUTPUT; # Path to the output file
+          const path = process.env.GITHUB_OUTPUT;  
           
           const data = JSON.parse(fs.readFileSync('github-data.json', 'utf8'));
           
@@ -189,7 +189,7 @@ jobs:
           node << 'EOF'
           const fs = require('fs');
           const Groq = require('groq-sdk');
-          const path = process.env.GITHUB_OUTPUT; # Path to the output file
+          const path = process.env.GITHUB_OUTPUT; 
           
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
           const apiKey = process.env.GROQ_API_KEY; # Now correctly set from env block
@@ -251,8 +251,7 @@ jobs:
       - name: Create GitHub Issue
         if: always()
         uses: actions/github-script@v7
-        with:
-          # FIX: Pass step outputs as 'with' inputs to the script for clean access
+        with: 
           script: |
             const fs = require('fs');
             // 'github' and 'context' are available by default
@@ -280,8 +279,7 @@ jobs:
             
             console.log(`Created issue: ${issue.data.html_url}`);
             return issue.data.html_url;
-
-          # FIX: Define the inputs and their values
+ 
           github-token: ${{ secrets.GITHUB_TOKEN }} 
           health-score: ${{ steps.ai-analysis.outputs.team_health_score }}
           burnout-risk: ${{ steps.ai-analysis.outputs.burnout_risk }}
@@ -290,8 +288,7 @@ jobs:
       - name: Post PR Comment
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        with:
-          # FIX: Pass step outputs as 'with' inputs to the script for clean access
+        with: 
           script: |
             const fs = require('fs');
             // 'github' and 'context' are available by default
@@ -307,16 +304,14 @@ jobs:
               issue_number: context.issue.number,
               body: commentBody
             });
-            
-          # FIX: Define the inputs and their values
+             
           github-token: ${{ secrets.GITHUB_TOKEN }} 
           health-score: ${{ steps.ai-analysis.outputs.team_health_score }}
           burnout-risk: ${{ steps.ai-analysis.outputs.burnout_risk }}
           confidence: ${{ steps.ai-analysis.outputs.confidence }}
 
       - name: Send Email Report
-        if: always()
-        # FIX: Pass all required variables via 'env'
+        if: always() 
         env:
           EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
           HEALTH_SCORE: ${{ steps.ai-analysis.outputs.team_health_score }}
@@ -329,8 +324,7 @@ jobs:
           
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
           const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
-          
-          # FIX: Read variables from process.env
+           
           const healthScore = process.env.HEALTH_SCORE;
           const burnoutRisk = process.env.BURNOUT_RISK;
           const confidence = process.env.CONFIDENCE;
