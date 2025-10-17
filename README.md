@@ -1,7 +1,7 @@
 # AI Burnout Detector - Team Wellness Analysis
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-
+ 
 🤖 **Automated AI-powered team wellness monitoring** that analyzes developer activity patterns to detect early signs of burnout and team stress.
 
 ## 🎯 What It Does 
