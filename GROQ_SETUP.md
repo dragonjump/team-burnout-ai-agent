@@ -3,7 +3,7 @@
 ## 🔧 Required Configuration
 
 ### 1. GitHub Secrets Setup
-
+ 
 Go to your repository → Settings → Secrets and variables → Actions, then add:
 
 #### Required Secrets:
