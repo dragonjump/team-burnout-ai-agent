@@ -1,69 +1,177 @@
-# Agent Development Kit (ADK) Samples
+# AI Burnout Detector - Team Wellness Analysis
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+ 
+🤖 **Automated AI-powered team wellness monitoring** that analyzes developer activity patterns to detect early signs of burnout and team stress.
 
-<img src="https://github.com/google/adk-docs/blob/main/docs/assets/agent-development-kit.png" alt="Agent Development Kit Logo" width="150">
+## 🎯 What It Does 
 
-Welcome to the ADK Sample Agents repository! This collection provides ready-to-use agents built on top of the [Agent Development Kit](https://google.github.io/adk-docs/), designed to accelerate your development process. These agents cover a range of common use cases and complexities, from simple conversational bots to complex multi-agent workflows.
+The AI Burnout Detector is a GitHub Actions workflow that automatically:
 
-## ✨ Getting Started 
-This repo contains ADK sample agents for both **Python** and **Java.** Navigate to the **[Python](python/)** and **[Java](java/)** subfolders to see language-specific setup instructions, and learn more about the available sample agents. 
+- 📊 **Analyzes commit patterns** (late-night work, weekend activity)
+- 🔍 **Tracks workflow failures** and development velocity
+- 🧠 **Uses AI** (Groq API) to assess team wellness and burnout risk
+- 📧 **Sends alerts** via GitHub issues and email reports
+- 📈 **Provides actionable recommendations** for team health
 
-> [!IMPORTANT]
-> The agents in this repository are built using the **Agent Development Kit (ADK)**. Before you can run any of the samples, you must have the ADK installed. For instructions, please refer to the [**ADK Installation Guide**](https://google.github.io/adk-docs/get-started/installation).
+## 🚀 How It Works
 
-To learn more, check out the [ADK Documentation](https://google.github.io/adk-docs/), and the GitHub repositories for [ADK Python](https://github.com/google/adk-python) and [ADK Java](https://github.com/google/adk-java). 
+### 1. **Automatic Triggering**
+- Runs on every **pull request** (opened, synchronized, reopened)
+- Can be manually triggered via `workflow_dispatch`
 
-## 🌳 Repository Structure
+### 2. **Data Collection**
+- Fetches GitHub API data (commits, PRs, workflow runs)
+- Analyzes patterns over configurable time periods (default: 7 days)
+
+### 3. **AI Analysis**
+- Uses **Groq API** with Llama3-8B model for fast, cost-effective analysis
+- Generates burnout risk assessment (Low/Medium/High)
+- Provides team health score (0-100)
+- Identifies specific risk indicators
+
+### 4. **Automated Actions**
+- Creates GitHub issues with wellness alerts
+- Sends email reports to team leads
+- Uploads detailed analysis artifacts
+
+## ⚡ Quick Setup
+
+### 1. **Get Groq API Key**
 ```bash
-├── java
-│   ├── agents
-│   │   ├── software-bug-assistant
-│   │   └── time-series-forecasting
-│   └── README.md
-├── python
-│   ├── agents
-│   │   ├── academic-research
-│   │   ├── blog-writer
-│   │   ├── brand-search-optimization
-│   │   ├── camel
-│   │   ├── customer-service
-│   │   ├── data-engineering
-│   │   ├── data-science
-│   │   ├── financial-advisor
-│   │   ├── fomc-research
-│   │   ├── gemini-fullstack
-│   │   ├── google-trends-agent
-│   │   ├── image-scoring
-│   │   ├── llm-auditor
-│   │   ├── machine-learning-engineering
-│   │   ├── marketing-agency
-│   │   ├── medical-pre-authorization
-│   │   ├── personalized-shopping
-│   │   ├── RAG
-│   │   ├── realtime-conversational-agent
-│   │   ├── safety-plugins
-│   │   ├── README.md
-│   │   ├── software-bug-assistant  
-│   │   └── travel-concierge
-│   └── README.md
-└── README.md
+# Visit https://console.groq.com/
+# Sign up and create an API key
 ```
 
-## ℹ️ Getting help
+### 2. **Add GitHub Secret**
+```bash
+# Go to: Repository Settings → Secrets and variables → Actions
+# Add secret: GROQ_API_KEY = your_groq_api_key
+```
 
-If you have any questions or if you found any problems with this repository, please report through [GitHub issues](https://github.com/google/adk-samples/issues).
+### 3. **Configure Email (Optional)**
+```bash
+# Add secret: EMAIL_RECIPIENT = team-leads@yourcompany.com
+```
+
+### 4. **Test It**
+- Create a test pull request
+- Check the Actions tab for execution
+- Look for created issues and reports
+
+## 🔧 Configuration
+
+### Environment Variables
+```yaml
+ANALYSIS_PERIOD: 7          # Days to analyze (default: 7)
+EMAIL_RECIPIENT: team@...   # Email for reports
+GROQ_API_KEY: gsk_...       # Your Groq API key
+```
+
+### Available Groq Models
+```javascript
+model: 'llama3-8b-8192',        // Fastest (default)
+model: 'mixtral-8x7b-32768',    // More capable
+model: 'gemma2-9b-it',          // Google's model
+```
+
+## 📊 Sample Output
+
+### GitHub Issue Alert
+```
+🚨 CRITICAL: Team Wellness Alert - your-org/repo
+
+Team Health Score: 45/100
+Burnout Risk: High
+Confidence: 85%
+
+Key Metrics:
+- Late Night Work: 23 commits (67%)
+- Weekend Work: 15 commits (44%)
+- Failed Workflows: 8 (25%)
+
+Risk Indicators:
+- Excessive late-night coding patterns
+- High weekend work frequency
+- Increased workflow failures
+
+Recommendations:
+- Implement flexible work hours
+- Schedule team wellness check-ins
+- Consider workload redistribution
+```
+
+## 💰 Cost Analysis
+
+**Groq API Pricing:**
+- ~$0.27 per 1M tokens
+- Typical analysis: 2-5K tokens per run
+- **Cost per analysis: ~$0.001** (less than 1 cent!)
+
+## 🛠️ Technical Details
+
+### Workflow Structure
+```yaml
+on:
+  pull_request: [opened, synchronize, reopened]
+  workflow_dispatch:  # Manual trigger
+```
+
+### Key Steps
+1. **Fetch GitHub Data** - Commits, PRs, workflows
+2. **Pattern Analysis** - Calculate metrics and rates
+3. **AI Analysis** - Groq-powered wellness assessment
+4. **Create Alerts** - GitHub issues and email reports
+5. **Upload Artifacts** - Detailed analysis files
+
+### Dependencies
+- `axios` - HTTP requests
+- `groq-sdk` - AI analysis
+- GitHub Actions built-in tools
+
+## 📁 Repository Structure
+
+This repository also contains ADK sample agents for reference:
+
+```bash
+├── .github/workflows/
+│   └── devex-ai-burnout-detector.yml  # Main workflow
+├── python/agents/                     # ADK Python samples
+├── java/agents/                       # ADK Java samples
+└── GROQ_SETUP.md                      # Detailed setup guide
+```
+
+> **Note**: This repository includes samples from the [Agent Development Kit (ADK)](https://google.github.io/adk-docs/), but the main focus is the AI Burnout Detector workflow.
+
+## 🔍 Monitoring & Alerts
+
+### Health Score Ranges
+- **🟢 70-100**: Healthy team patterns
+- **🟡 50-69**: Warning signs detected
+- **🔴 0-49**: Critical burnout risk
+
+### Alert Types
+- **INFO**: Regular wellness updates
+- **WARNING**: Moderate risk indicators
+- **CRITICAL**: High burnout risk detected
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please see our [**Contributing Guidelines**](https://github.com/google/adk-samples/blob/main/CONTRIBUTING.md) to get started.
+Found a bug or want to improve the detector? 
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
 ## 📄 License
 
-This project is licensed under the Apache 2.0 License - see the [LICENSE](https://github.com/google/adk-samples/blob/main/LICENSE) file for details.
+Apache 2.0 License - see [LICENSE](LICENSE) for details.
 
-## Disclaimers
+## ⚠️ Disclaimer
 
-This is not an officially supported Google product. This project is not eligible for the [Google Open Source Software Vulnerability Rewards Program](https://bughunters.google.com/open-source-security).
+This tool is designed to help teams monitor wellness patterns, not to make personal judgments about individual developers. Always use the insights responsibly and focus on systemic improvements rather than individual performance reviews.
 
-This project is intended for demonstration purposes only. It is not intended for use in a production environment.
+---
+
+**Ready to protect your team's wellness?** 🚀 Set up the AI Burnout Detector in minutes and start getting automated insights into your team's health patterns!

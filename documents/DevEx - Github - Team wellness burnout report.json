@@ -1,0 +1,448 @@
+{
+  "name": "DevEx - Github - Team wellness burnout report",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "repository",
+        "operation": "getPullRequests",
+        "owner": {
+          "__rl": true,
+          "value": "=https://github.com/{{ $('Config').first().json.repoowner }}",
+          "mode": "url"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "=https://github.com/{{ $('Config').first().json.repoowner }}/{{  $('Config').first().json.reponame }}",
+          "mode": "url"
+        },
+        "returnAll": true,
+        "getRepositoryPullRequestsFilters": {
+          "state": "all",
+          "direction": "desc"
+        }
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        480
+      ],
+      "id": "c7a771f7-ee05-4600-81d6-6af8ed3c9a99",
+      "name": "Get Prs",
+      "webhookId": "1a85b560-3afe-49b9-89be-65f0e0b6922d",
+      "alwaysOutputData": true,
+      "credentials": {
+        "githubApi": {
+          "id": "OWMEIJM53SaS58Kt",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"repoowner\": \"suarifymy\",\n  \"reponame\": \"adk-samples\",\n  \"period\":7,\n  \"emailreport\": \"aiix.space.noreply@gmail.com\"\n}\n",
+        "options": {}
+      },
+      "id": "5ed27a6e-447f-4042-9772-d605442d783c",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "= You are a **Professional Team Wellness and Burnout Detection Agent** with strict guardrails.  \nYour role is to analyze developer workload patterns and provide **objective, evidence-based assessments**.  \n\n### Core Rules\n1. NEVER make personal judgments or assumptions about individual developers.  \n2. ONLY analyze observable patterns in code activity data.  \n3. ALWAYS provide evidence-based reasoning for all assessments.  \n4. NEVER suggest disciplinary actions or performance reviews.  \n5. FOCUS on systemic issues and team-level recommendations.  \n6. ALWAYS include confidence scores and data limitations.  \n7. RESPECT privacy and confidentiality of team members.  \n8. PROVIDE actionable, constructive recommendations only.  \n9. AVOID alarmist language—use a professional, measured tone.  \n10. ALWAYS structure responses with clear sections and evidence.  \n\n### Tools Available\n1. **Update GitHub Issue** → Create or update issues for tracking team wellness concerns.  \n2. **Email Tool** → Send urgent notifications to team leads.  \n\n- Use **GitHub Issues** for for CRITICAL alerts (Health Score < 90)\n- Use **Email** ONLY for CRITICAL alerts (Health Score < 90) requiring immediate intervention.  \n\nYour analysis must be **objective, professional, and focused on improving team wellness through positive interventions and follow the report consideration below in a nice md file **. Always update github issues tool.\n\n\noutput report considerations.\n```\n{\n  \"team_health_report\": {\n    \"summary\": \"📝 Overall, the team is maintaining a healthy delivery pace, but there are emerging signs of workload imbalance due to increased after-hours activity.\",\n    \"health_score\": {\n      \"value\": 68,\n      \"scale\": \"0-100\",\n      \"confidence\": 0.87,\n      \"limitations\": \"Analysis is based solely on commit and pull request activity; meeting load and non-code tasks are not captured.\"\n    },\n    \"observed_patterns\": [\n      {\n        \"pattern\": \"⏰ After-hours activity\",\n        \"evidence\": \"29% of commits occurred between 10pm–1am over the last 14 days (baseline: 12%).\",\n        \"confidence\": 0.9\n      },\n      {\n        \"pattern\": \"📈 Weekend workload\",\n        \"evidence\": \"Weekend commits increased by 35% compared to the previous month.\",\n        \"confidence\": 0.82\n      },\n      {\n        \"pattern\": \"🤝 Collaboration bottleneck\",\n        \"evidence\": \"Average PR review turnaround time increased from 6h → 18h, suggesting reviewer overload.\",\n        \"confidence\": 0.78\n      }\n    ],\n    \"systemic_risks\": [\n      {\n        \"risk\": \"⚠️ Sustained after-hours work may indicate creeping burnout risk.\",\n        \"evidence\": \"Three consecutive weeks of elevated late-night commits across multiple contributors.\",\n        \"confidence\": 0.85\n      },\n      {\n        \"risk\": \"⚠️ Slower PR reviews may delay feedback loops and increase cycle time.\",\n        \"evidence\": \"Median cycle time rose from 2.1 days → 3.4 days.\",\n        \"confidence\": 0.8\n      }\n    ],\n    \"recommendations\": [\n      {\n        \"action\": \"📌 Facilitate a team discussion on workload distribution and realistic sprint commitments.\",\n        \"type\": \"constructive\",\n        \"priority\": \"medium\"\n      },\n      {\n        \"action\": \"🔔 Introduce automated nudges discouraging late-night commits, with opt-out flexibility.\",\n        \"type\": \"preventive\",\n        \"priority\": \"low\"\n      },\n      {\n        \"action\": \"🛠️ Consider rotating PR review responsibilities or adopting lightweight review guidelines to reduce bottlenecks.\",\n        \"type\": \"systemic\",\n        \"priority\": \"high\"\n      }\n    ],\n    \"next_steps\": {\n      \"tracking\": \"📌 Create GitHub issue to monitor after-hours activity and PR review turnaround.\",\n      \"critical_alert\": false\n    }\n  }\n}```\n\noutput html report examples\n```\n# 📊 Team Health Report\n\n\n👩‍💻 Team Activity Snapshot\n📊 Overall Summary\n- Total commits: 6\n- Pull requests opened: 1\n- Workflows run: 1\n- Late‑night commits: 3\n- Weekend commits: 2\n- Failed workflows: 0 ✅\nThe team is keeping activity light this cycle, with a few late‑night pushes and some weekend work showing up.\n\n👥 Developer Activity Breakdown\n- sean\n- Commits: 2\n- Late‑night: 0\n- Weekend: 2 🌙 (notable weekend activity)\n- Ara SAMAD\n- Commits: 3\n- Late‑night: 3 🌙🌙🌙 (all commits after hours)\n- Weekend: 0\n- wzss088\n- Commits: 1\n- Late‑night: 0\n- Weekend: 0\n\n\n\n## 📝 Summary\nOverall, the team is maintaining a healthy delivery pace, but there are emerging signs of workload imbalance due to increased after-hours activity.\n\n---\n\n## 🔢 Health Score\n- **Value:** 68 / 100  \n- **Confidence:** 87%  \n- **Limitations:** Based solely on commit and PR activity; meeting load and non-code tasks not captured.\n\n---\n\n## 🔍 Observed Patterns\n- ⏰ **After-hours activity**  \n  - 29% of commits occurred between 10pm–1am (baseline: 12%).  \n  - Confidence: 0.90  \n\n- 📈 **Weekend workload**  \n  - Weekend commits increased by 35% compared to the previous month.  \n  - Confidence: 0.82  \n\n- 🤝 **Collaboration bottleneck**  \n  - PR review turnaround time increased from 6h → 18h.  \n  - Confidence: 0.78  \n\n---\n\n## ⚠️ Systemic Risks\n- Sustained after-hours work may indicate creeping burnout risk.  \n  - Evidence: 3 consecutive weeks of elevated late-night commits.  \n  - Confidence: 0.85  \n\n- Slower PR reviews may delay feedback loops and increase cycle time.  \n  - Evidence: Median cycle time rose from 2.1 days → 3.4 days.  \n  - Confidence: 0.80  \n\n---\n\n## ✅ Recommendations\n- 📌 Facilitate a team discussion on workload distribution and sprint commitments. *(Priority: Medium)*  \n- 🔔 Introduce automated nudges discouraging late-night commits. *(Priority: Low)*  \n- 🛠️ Rotate PR review responsibilities or adopt lightweight review guidelines. *(Priority: High)*  \n\n--- \n```\nPLease use the tool to send report. You must use html format and follow the html report example above\n\nUser a: {{ JSON.stringify( $('Analyze Patterns Developer').first().json )}}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        480
+      ],
+      "id": "a60c7b18-c0c4-4149-bb2f-d7e207eb8370",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        816
+      ],
+      "id": "4c505891-24d1-4ddb-9630-79ffd551f5b5",
+      "name": "Groq Chat Model Report",
+      "credentials": {
+        "groqApi": {
+          "id": "myslm11JTfGc28Kr",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update reports to stakeholder via email",
+        "sendTo": "={{  $('Config').first().json.emailreport }}",
+        "subject": " 📊 Team Health and Wellness Report",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        1472,
+        816
+      ],
+      "id": "bc729656-5c32-4d1b-8b81-6fc84bc6f1d3",
+      "name": "Send a message in Gmail",
+      "webhookId": "13fd9a8a-dcd7-4602-9f77-c22edc2dbcab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1mQ36iw0MWrsb0cL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        480
+      ],
+      "id": "f596eaf2-4c8f-4b56-84a1-5a81ee50e9bf",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze patterns from GitHub data\n\nconst commits =$(\"Github Get Commits\").all();\nconst pullRequests = $('Get Prs').all();\nconst workflows = $(\"Github Get Workflows\").all();\nconst analysisPeriod =$('Config').first().json.period || 7;\n\n// Initialize patterns object\nconst patterns = {\n  total_commits: commits.length,\n  total_prs: pullRequests.length,\n  total_workflows: workflows.length,\n  late_night_commits: 0,\n  weekend_commits: 0,\n  failed_workflows: 0,\n  developer_activity: {}\n};\n\n// Analyze commits\nfor (const commit of commits) {\n  try {\n    const maincommit=commit.json.commit\n    const commitTime = new Date(maincommit.author.date);\n    const hour = commitTime.getHours();\n    const weekday = commitTime.getDay();\n    const author = maincommit.author.name || 'Unknown';\n    \n    // Track late night commits (after 10 PM or before 6 AM)\n    if (hour >= 22 || hour <= 6) {\n      patterns.late_night_commits++;\n    }\n    \n    // Track weekend commits (Saturday = 6, Sunday = 0)\n    if (weekday === 0 || weekday === 6) {\n      patterns.weekend_commits++;\n    }\n    \n    // Track per-developer activity\n    if (!patterns.developer_activity[author]) {\n      patterns.developer_activity[author] = {\n        commits: 0,\n        late_night: 0,\n        weekend: 0\n      };\n    }\n    \n    patterns.developer_activity[author].commits++;\n    if (hour >= 22 || hour <= 6) {\n      patterns.developer_activity[author].late_night++;\n    }\n    if (weekday === 0 || weekday === 6) {\n      patterns.developer_activity[author].weekend++;\n    }\n  } catch (e) {\n    console.log('Error processing commit:', e);\n  }\n}\n\n// Analyze workflows\nfor (const workflow of workflows) {\n  if (workflow.conclusion === 'failure') {\n    patterns.failed_workflows++;\n  }\n}\n\n// Calculate rates\nconst failureRate = (patterns.failed_workflows / Math.max(patterns.total_workflows, 1)) * 100;\nconst lateNightRate = (patterns.late_night_commits / Math.max(patterns.total_commits, 1)) * 100;\nconst weekendRate = (patterns.weekend_commits / Math.max(patterns.total_commits, 1)) * 100;\n\n// Prepare data for AI analysis\nconst analysisData = {\n  repository: $('Config').first().json.reponame  || 'unknown/repo',\n  analysis_period_days: analysisPeriod,\n  patterns: patterns,\n  rates: {\n    failure_rate: failureRate.toFixed(1),\n    late_night_rate: lateNightRate.toFixed(1),\n    weekend_rate: weekendRate.toFixed(1)\n  },\n  raw_data: {\n    // commits: commits,\n    // pull_requests: pullRequests,\n    // workflows: workflows\n  }\n};\n\nreturn [{\n  json: analysisData\n}];"
+      },
+      "id": "2d6f9843-2047-4f93-a918-9f55f09735d9",
+      "name": "Analyze Patterns Developer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": " ",
+        "height": 624,
+        "width": 1952,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -16,
+        416
+      ],
+      "typeVersion": 1,
+      "id": "214a41de-ad78-4098-a60b-597537b8d01e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Team-Wellness :  AI Burnout Detector Agent [devex]\n\n## Demo \n![Demo](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents/demo.gif)\n\n* [github action code alternative ]( https://github.com/suarifymy/adk-samples/blob/main/.github/workflows/devex-ai-burnout-detector.yml)\n* [sample report ](https://github.com/suarifymy/adk-samples/issues/1/)\n\n## Screenshots\n![output](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents/report.png)\n\n\n![output](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents/report2.png)\n\n\n![output](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents/report3.png)\n## How it works\n\n \n### 1. Data Collection Layer\n**Purpose**: Gather team activity data from GitHub API\n\n**Data Sources**:\n- GitHub Commits API\n- GitHub Pull Requests API  \n- GitHub Actions/Workflows API \n\n\n### 2. Pattern Analysis Engine\n**Purpose**: Extract meaningful patterns from raw data\n\n**Analysis Metrics**:\n- Total commits count\n- Late night commits (10PM-6AM)\n- Weekend commits (Saturday-Sunday)\n- Failed workflow rate\n- Per-developer activity distribution\n- Work intensity patterns\n\n \n \n\n### 2.1 Repository-Level Metrics\n- Total commits (how many code changes were made)\n- Pull requests (PRs) (collaboration and review activity)\n- Workflows run (CI/CD pipeline executions)\n- Failed workflows (pipeline reliability)\n\n### 2.2 Work Pattern Signals\n- Late-night commits (activity outside normal working hours)\n- Weekend commits (activity during weekends)\n- Rates (percentages of late-night, weekend, or failed workflows)\n\n### 2.3. Developer-Level Activity\n- Commits per developer (individual contribution counts)\n- Late-night activity per developer\n- Weekend activity per developer\n\n### 2.4. Derived Indicators\n- Failure rate (workflow stability)\n- Late-night rate (proportion of commits done after hours)\n- Weekend rate (proportion of commits done on weekends)\n\n\n**Example data Collected**:\n```json\n [ { \"repository\": \"adk-samples\", \"analysis_period_days\": 7, \"patterns\": { \"total_commits\": 30, \"total_prs\": 1, \"total_workflows\": 1, \"late_night_commits\": 3, \"weekend_commits\": 0, \"failed_workflows\": 0, \"developer_activity\": { \"google-andygore\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"exliasecchig\": { \"commits\": 9, \"late_night\": 0, \"weekend\": 0 }, \"xRajesh Pandhare\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"dependabot[bot]\": { \"commits\": 9, \"late_night\": 0, \"weekend\": 0 }, \"xMani Krixshna\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"Kxishore Jagannath\": { \"commits\": 1, \"late_night\": 1, \"weekend\": 0 }, \"Sxai Saran Vaidyanathan\": { \"commits\": 1, \"late_night\": 1, \"weekend\": 0 }, \"Stexphen Allen\": { \"commits\": 2, \"late_night\": 1, \"weekend\": 0 }, \"Lucia xubatin\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"agarwaldipxali-hash\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"sammalxik-lgtm\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"Yehia Elshatexr\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 }, \"Pier Paolo Ippolxxito\": { \"commits\": 1, \"late_night\": 0, \"weekend\": 0 } } }, \"rates\": { \"failure_rate\": \"0.0\", \"late_night_rate\": \"10.0\", \"weekend_rate\": \"0.0\" }, \"raw_data\": {} } ]\n```\n\n\n### 3. AI Analysis Layer\n**Purpose**: Use LLM to interpret patterns and assess burnout risk\n ```\n    \n# 📊 Team Health Report\n\n\n👩‍💻 Team Activity Snapshot\n📊 Overall Summary\n- Total commits: 6\n- Pull requests opened: 1\n- Workflows run: 1\n- Late‑night commits: 3\n- Weekend commits: 2\n- Failed workflows: 0 ✅\nThe team is keeping activity light this cycle, with a few late‑night pushes and some weekend work showing up.\n\n👥 Developer Activity Breakdown\n- sean\n- Commits: 2\n- Late‑night: 0\n- Weekend: 2 🌙 (notable weekend activity)\n- adas SAxMADs\n- Commits: 3\n- Late‑night: 3 🌙🌙🌙 (all commits after hours)\n- Weekend: 0\n- 3sda23\n- Commits: 1\n- Late‑night: 0\n- Weekend: 0\n\n\n\n## 📝 Summary\nOverall, the team is maintaining a healthy delivery pace, but there are emerging signs of workload imbalance due to increased after-hours activity.\n\n---\n\n## 🔢 Health Score\n- **Value:** 68 / 100  \n- **Confidence:** 87%  \n- **Limitations:** Based solely on commit and PR activity; meeting load and non-code tasks not captured.\n\n---\n\n## 🔍 Observed Patterns\n- ⏰ **After-hours activity**  \n  - 29% of commits occurred between 10pm–1am (baseline: 12%).  \n  - Confidence: 0.90  \n\n- 📈 **Weekend workload**  \n  - Weekend commits increased by 35% compared to the previous month.  \n  - Confidence: 0.82  \n\n- 🤝 **Collaboration bottleneck**  \n  - PR review turnaround time increased from 6h → 18h.  \n  - Confidence: 0.78  \n\n---\n\n## ⚠️ Systemic Risks\n- Sustained after-hours work may indicate creeping burnout risk.  \n  - Evidence: 3 consecutive weeks of elevated late-night commits.  \n  - Confidence: 0.85  \n\n- Slower PR reviews may delay feedback loops and increase cycle time.  \n  - Evidence: Median cycle time rose from 2.1 days → 3.4 days.  \n  - Confidence: 0.80  \n\n---\n\n## ✅ Recommendations\n- 📌 Facilitate a team discussion on workload distribution and sprint commitments. *(Priority: Medium)*  \n- 🔔 Introduce automated nudges discouraging late-night commits. *(Priority: Low)*  \n- 🛠️ Rotate PR review responsibilities or adopt lightweight review guidelines. *(Priority: High)*  \n\n--- \n```",
+        "height": 5312,
+        "width": 660,
+        "color": 4
+      },
+      "id": "a773906d-e9b1-4332-ac32-6fcbdaa66bd7",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -784,
+        416
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        480
+      ],
+      "id": "9aaf57fe-336f-4a8a-9e31-2cae18fe9f2c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "\n \n## Set up steps\n\n1. **Github**:\n   - Follow setup link [n8n-github-account-setup](\nhttps://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.github/)\n\n   - We will be using the github node and also the Curl http request for some api calls\n\n\n![Demo](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents//github-httpreq-node.png)\n\n![Demo](https://raw.githubusercontent.com/suarifymy/adk-samples/refs/heads/main/documents//github-node.png)\n\n2. **Groq**:\n   - Follow setup link [n8n-groq-setup](https://docs.n8n.io/integrations/builtin/credentials/groq/)\n   - We will be using the `gpt-oss 20b model`, you may chage as needed\n\n3. **Gmail (optional)**:\n   - Follow setup link [n8n-gmail-setup](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.gmail/)\n   - We will be using the gmail to send team wellness reports when criticality is high.\n\n3. **Setting Repos and Scheduler**:\nOpen the `Config` node. Then set the info accordingly.\n\nEg.\nYour repo is \n`https://github.com/repoowner123/3d-rpg-game`\nYou want automated team report burnout report every `7` days.\nYou want any extra criticality report to directly email to `aiix.space.noreply@gmail.com`\n\nConfig\n ```\n{\n  \"repoowner\": \"repoowner123\",\n  \"reponame\": \"3d-rpg-game\",\n  \"period\":7,\n  \"emailreport\": \"aiix.space.noreply@gmail.com\"\n}\n```\n\n ",
+        "height": 1504,
+        "width": 660,
+        "color": 3
+      },
+      "id": "c220d1c7-2ba3-483e-b38b-28bbd5865a2d",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1504,
+        416
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $('Config').first().json.repoowner }}/{{  $('Config').first().json.reponame }}/commits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "created",
+              "value": "={{ $now.minus({ days: $json.period || 7 }).toISO() }}..*"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        480
+      ],
+      "id": "0b0ac984-e718-4965-8b31-aeee50cd122d",
+      "name": "Github Get Commits",
+      "credentials": {
+        "githubApi": {
+          "id": "OWMEIJM53SaS58Kt",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{ $json.repoowner}}/{{ $json.reponame}}/actions/runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "created",
+              "value": "={{ $now.minus({ days: $json.period || 7 }).toISO() }}..*"
+            },
+            {
+              "name": "per_page",
+              "value": "50"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aed1e150-07b2-4512-9d35-6749275c0af6",
+      "name": "Github Get Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        496,
+        480
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "OWMEIJM53SaS58Kt",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "#Update Github Issue\nCreate an issue in GitHub on the team wellness",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{  $('Config').first().json.repoowner }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{  $('Config').first().json.reponame }}"
+        },
+        "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', ``, 'string') }}",
+        "body": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Body', ``, 'string') }}",
+        "labels": [],
+        "assignees": []
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        1296,
+        816
+      ],
+      "id": "bccfdfe7-887a-4aa8-b31c-24400b7153ee",
+      "name": "Update Github Issue",
+      "webhookId": "6e6411fe-1caa-4714-95a6-1a61bfd2f006",
+      "credentials": {
+        "githubApi": {
+          "id": "OWMEIJM53SaS58Kt",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Prs": {
+      "main": [
+        [
+          {
+            "node": "Analyze Patterns Developer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Github Get Workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model Report": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Patterns Developer": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Github Get Commits": {
+      "main": [
+        [
+          {
+            "node": "Get Prs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Github Get Workflows": {
+      "main": [
+        [
+          {
+            "node": "Github Get Commits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Github Issue": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1da52a01-41d9-41db-8c6a-7e7d52bc6dba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e93a01df1c52af0d5a5bffda998d2d45d3e65e41e9b02e756e368c852da9b80b"
+  },
+  "id": "1Oqq1dqj69XTKKAy",
+  "tags": [
+    {
+      "createdAt": "2025-10-11T15:33:02.359Z",
+      "updatedAt": "2025-10-11T15:33:02.359Z",
+      "id": "Tqphal8U1xgK62Ru",
+      "name": "burnout-detector"
+    },
+    {
+      "createdAt": "2025-10-11T15:49:08.958Z",
+      "updatedAt": "2025-10-11T15:49:08.958Z",
+      "id": "tMPdyC8GBdQzpbC5",
+      "name": "team-wellness"
+    }
+  ]
+}
