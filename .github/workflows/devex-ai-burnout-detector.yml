@@ -549,8 +549,7 @@ jobs:
           fs.writeFileSync('email-report.html', htmlBody);
           console.log('Email report saved to email-report.html');
           EOF
-        env:
-          EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
+        
 
       - name: Upload Artifacts
         if: always()
