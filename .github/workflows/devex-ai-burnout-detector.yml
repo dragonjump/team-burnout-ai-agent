@@ -414,7 +414,7 @@ Format as JSON with structured sections.`;
 **Repository**: ${analysisData.repository}
 **Analysis Date**: ${new Date().toISOString().split('T')[0]}
 **Team Health Score**: ${healthScore}/100
-**Burnout Risk**: ${burnoutRisk}
+**Burnout Risk**: ${burnoutRisk} 
 **Confidence**: ${Math.round(confidence * 100)}%
 
 ### 📈 Key Metrics
