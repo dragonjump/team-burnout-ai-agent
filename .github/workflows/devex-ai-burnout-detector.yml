@@ -93,7 +93,7 @@ jobs:
                 }
               );
               
-              // Fetch pull requests
+              // Fetch pull requests 
               const prsResponse = await axios.get(
                 `https://api.github.com/repos/${owner}/${repo}/pulls`,
                 {
