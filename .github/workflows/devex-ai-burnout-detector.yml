@@ -576,7 +576,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Key Metrics" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Commits**: ${{ steps.analyze-patterns.outputs.total_commits }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Late Night Work**: ${{ steps.analyze-patterns.outputs.late_night_commits }} commits (${{ steps.analyze-patterns.outputs.late_night_rate }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Late Night Work **: ${{ steps.analyze-patterns.outputs.late_night_commits }} commits (${{ steps.analyze-patterns.outputs.late_night_rate }}%)" >> $GITHUB_STEP_SUMMARY
           echo "- **Weekend Work**: ${{ steps.analyze-patterns.outputs.weekend_commits }} commits (${{ steps.analyze-patterns.outputs.weekend_rate }}%)" >> $GITHUB_STEP_SUMMARY
           echo "- **Failed Workflows**: ${{ steps.analyze-patterns.outputs.failed_workflows }} (${{ steps.analyze-patterns.outputs.failure_rate }}%)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
