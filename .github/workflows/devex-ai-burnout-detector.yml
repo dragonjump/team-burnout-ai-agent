@@ -10,7 +10,7 @@ on:
     inputs:
       analysis_period:
         description: 'Analysis period in days'
-        required: false
+        required: false 
         default: '7'
         type: 'string'
       email_recipient:
