@@ -429,40 +429,43 @@ jobs:
             const { analysis: _omitAnalysis, ...analysisShown } = aiAnalysis;
             const fullAnalysisBlock = '```json\n' + JSON.stringify(analysisShown, null, 2) + '\n```';
 
-            const body = `## 📊 Team Wellness ${issueType} Alert
-
-**Repository**: ${analysisData.repository}
-**Analysis Date**: ${new Date().toISOString().split('T')[0]}
-**Team Health Score**: ${healthScore}/100
-**Burnout Risk**: ${burnoutRisk}
-**Confidence**: ${Math.round(confidence * 100)}%
-
-### 📈 Key Metrics
-- **Total Commits**: ${analysisData.patterns.total_commits}
-- **Late Night Work**: ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)
-- **Weekend Work**: ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)
-- **Failed Workflows**: ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)
-
-### 👥 Developer Activity
-${developerActivity}
-
-### ⚠️ Risk Indicators
-${riskIndicators}
-
-### 💡 Recommendations
-${recommendations}
-
-### 📋 Next Steps
-1. Review team workload distribution
-2. Implement recommended wellness measures
-3. Schedule team check-in meeting
-4. Monitor progress over next 2 weeks
-
-### 📊 Full Analysis
-${fullAnalysisBlock}
-
----
-*This issue was automatically created by the AI Burnout Detector workflow.*`;
+            const bodyLines = [
+              `## 📊 Team Wellness ${issueType} Alert`,
+              '',
+              `**Repository**: ${analysisData.repository}`,
+              `**Analysis Date**: ${new Date().toISOString().split('T')[0]}`,
+              `**Team Health Score**: ${healthScore}/100`,
+              `**Burnout Risk**: ${burnoutRisk}`,
+              `**Confidence**: ${Math.round(confidence * 100)}%`,
+              '',
+              '### 📈 Key Metrics',
+              `- **Total Commits**: ${analysisData.patterns.total_commits}`,
+              `- **Late Night Work**: ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)`,
+              `- **Weekend Work**: ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)`,
+              `- **Failed Workflows**: ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)`,
+              '',
+              '### 👥 Developer Activity',
+              developerActivity,
+              '',
+              '### ⚠️ Risk Indicators',
+              riskIndicators,
+              '',
+              '### 💡 Recommendations',
+              recommendations,
+              '',
+              '### 📋 Next Steps',
+              '1. Review team workload distribution',
+              '2. Implement recommended wellness measures',
+              '3. Schedule team check-in meeting',
+              '4. Monitor progress over next 2 weeks',
+              '',
+              '### 📊 Full Analysis',
+              fullAnalysisBlock,
+              '',
+              '---',
+              '*This issue was automatically created by the AI Burnout Detector workflow.*'
+            ];
+            const body = bodyLines.join('\n');
 
             // Create the issue
             const issue = await github.rest.issues.create({
