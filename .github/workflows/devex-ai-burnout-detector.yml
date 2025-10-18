@@ -14,7 +14,7 @@ on:
         default: '7'
         type: 'string'
       email_recipient:
-        description: 'Email recipient for reports'
+        description: 'Email recipient for reports' 
         required: false
         default: 'team-leads@company.com'
         type: 'string'
