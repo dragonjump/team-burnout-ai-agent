@@ -426,7 +426,7 @@ Format as JSON with structured sections.`;
 ### 👥 Developer Activity
 ${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
   `- **${author}**: ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)`
-).join('\n')}
+).join('\n')} 
 
 ### ⚠️ Risk Indicators
 ${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `- ${indicator}`).join('\n') : '- No specific indicators identified'}
