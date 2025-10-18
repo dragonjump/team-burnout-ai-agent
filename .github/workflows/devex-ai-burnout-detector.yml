@@ -275,51 +275,31 @@ jobs:
             apiKey: apiKey,
           });
           
-          const systemPrompt = `You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.
-
-You must ALWAYS respond with valid JSON format and follow these strict guidelines:
-1. NEVER make personal judgments or assumptions about individual developers
-2. ONLY analyze observable patterns in code activity data
-3. ALWAYS provide evidence-based reasoning for all assessments
-4. NEVER suggest disciplinary actions or performance reviews
-5. FOCUS on systemic issues and team-level recommendations
-6. ALWAYS include confidence scores and data limitations
-7. RESPECT privacy and confidentiality of team members
-8. PROVIDE actionable, constructive recommendations only
-9. AVOID alarmist language - use professional, measured tone
-10. ALWAYS structure responses with clear sections and evidence
-
-Your analysis must be objective, professional, and focused on improving team wellness through positive interventions.`;
+          const systemPrompt = "You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.\n\nYou must ALWAYS respond with valid JSON format and follow these strict guidelines:\n1. NEVER make personal judgments or assumptions about individual developers\n2. ONLY analyze observable patterns in code activity data\n3. ALWAYS provide evidence-based reasoning for all assessments\n4. NEVER suggest disciplinary actions or performance reviews\n5. FOCUS on systemic issues and team-level recommendations\n6. ALWAYS include confidence scores and data limitations\n7. RESPECT privacy and confidentiality of team members\n8. PROVIDE actionable, constructive recommendations only\n9. AVOID alarmist language - use professional, measured tone\n10. ALWAYS structure responses with clear sections and evidence\n\nYour analysis must be objective, professional, and focused on improving team wellness through positive interventions.";
           
-          const prompt = `📊 Team Wellness and Burnout Risk Analysis
-
-**Project**: ${analysisData.repository}
-**Analysis Period**: ${analysisData.analysis_period_days} days
-
-## 📈 Team Activity Metrics
-- **Total Commits**: ${analysisData.patterns.total_commits}
-- **Total Pull Requests**: ${analysisData.patterns.total_prs}
-- **Total Workflows**: ${analysisData.patterns.total_workflows}
-- **Late Night Commits** (10PM-6AM): ${analysisData.patterns.late_night_commits}
-- **Weekend Commits**: ${analysisData.patterns.weekend_commits}
-- **Failed Workflows**: ${analysisData.patterns.failed_workflows}
-
-## 📊 Performance Rates
-- **Workflow Failure Rate**: ${analysisData.rates.failure_rate}%
-- **Late Night Work Rate**: ${analysisData.rates.late_night_rate}%
-- **Weekend Work Rate**: ${analysisData.rates.weekend_rate}%
-
-## 👥 Developer Activity Breakdown
-${JSON.stringify(analysisData.patterns.developer_activity, null, 2)}
-
-Please analyze and provide:
-1. **Burnout Risk Assessment** (Low/Medium/High) with detailed reasoning
-2. **Team Health Score** (0-100) with explanation
-3. **Key Risk Indicators** with specific examples
-4. **Actionable Recommendations** (minimum 5 specific recommendations)
-5. **Confidence Level** (0-1) with data limitations
-
-Format as JSON with structured sections.`;
+          const prompt = "📊 Team Wellness and Burnout Risk Analysis\\n\\n" +
+            "**Project**: " + analysisData.repository + "\\n" +
+            "**Analysis Period**: " + analysisData.analysis_period_days + " days\\n\\n" +
+            "## 📈 Team Activity Metrics\\n" +
+            "- **Total Commits**: " + analysisData.patterns.total_commits + "\\n" +
+            "- **Total Pull Requests**: " + analysisData.patterns.total_prs + "\\n" +
+            "- **Total Workflows**: " + analysisData.patterns.total_workflows + "\\n" +
+            "- **Late Night Commits** (10PM-6AM): " + analysisData.patterns.late_night_commits + "\\n" +
+            "- **Weekend Commits**: " + analysisData.patterns.weekend_commits + "\\n" +
+            "- **Failed Workflows**: " + analysisData.patterns.failed_workflows + "\\n\\n" +
+            "## 📊 Performance Rates\\n" +
+            "- **Workflow Failure Rate**: " + analysisData.rates.failure_rate + "%\\n" +
+            "- **Late Night Work Rate**: " + analysisData.rates.late_night_rate + "%\\n" +
+            "- **Weekend Work Rate**: " + analysisData.rates.weekend_rate + "%\\n\\n" +
+            "## 👥 Developer Activity Breakdown\\n" +
+            JSON.stringify(analysisData.patterns.developer_activity, null, 2) + "\\n\\n" +
+            "Please analyze and provide:\\n" +
+            "1. **Burnout Risk Assessment** (Low/Medium/High) with detailed reasoning\\n" +
+            "2. **Team Health Score** (0-100) with explanation\\n" +
+            "3. **Key Risk Indicators** with specific examples\\n" +
+            "4. **Actionable Recommendations** (minimum 5 specific recommendations)\\n" +
+            "5. **Confidence Level** (0-1) with data limitations\\n\\n" +
+            "Format as JSON with structured sections.";
 
           async function runAnalysis() {
             try {
@@ -426,46 +406,43 @@ Format as JSON with structured sections.`;
               labels = ['team-wellness', 'info', 'burnout-detection'];
             }
             
-            const title = `${emoji} ${issueType}: Team Wellness Alert - ${analysisData.repository}`;
+            const title = emoji + " " + issueType + ": Team Wellness Alert - " + analysisData.repository;
             
-            const body = `## 📊 Team Wellness ${issueType} Alert
-
-**Repository**: ${analysisData.repository}
-**Analysis Date**: ${new Date().toISOString().split('T')[0]}
-**Team Health Score**: ${healthScore}/100
-**Burnout Risk**: ${burnoutRisk} 
-**Confidence**: ${Math.round(confidence * 100)}%
-
-### 📈 Key Metrics
-- **Total Commits**: ${analysisData.patterns.total_commits}
-- **Late Night Work**: ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)
-- **Weekend Work**: ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)
-- **Failed Workflows**: ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)
-
-### 👥 Developer Activity
-${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
-  `- **${author}**: ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)`
-).join('\n')}
-
-### ⚠️ Risk Indicators
-${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `- ${indicator}`).join('\n') : '- No specific indicators identified'}
-
-### 💡 Recommendations
-${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `- ${rec}`).join('\n') : '- Monitor team activity patterns'}
-
-### 📋 Next Steps
-1. Review team workload distribution
-2. Implement recommended wellness measures
-3. Schedule team check-in meeting
-4. Monitor progress over next 2 weeks
-
-### 📊 Full Analysis
-\`\`\`json
-${JSON.stringify(aiAnalysis, null, 2)}
-\`\`\`
-
----
-*This issue was automatically created by the AI Burnout Detector workflow.*`;
+            const developerActivity = Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
+              "- **" + author + "**: " + data.commits + " commits (" + data.late_night + " late-night, " + data.weekend + " weekend)"
+            ).join('\\n');
+            
+            const riskIndicators = aiAnalysis.risk_indicators ? 
+              aiAnalysis.risk_indicators.map(indicator => "- " + indicator).join('\\n') : 
+              '- No specific indicators identified';
+              
+            const recommendations = aiAnalysis.recommendations ? 
+              aiAnalysis.recommendations.map(rec => "- " + rec).join('\\n') : 
+              '- Monitor team activity patterns';
+            
+            const body = "## 📊 Team Wellness " + issueType + " Alert\\n\\n" +
+              "**Repository**: " + analysisData.repository + "\\n" +
+              "**Analysis Date**: " + new Date().toISOString().split('T')[0] + "\\n" +
+              "**Team Health Score**: " + healthScore + "/100\\n" +
+              "**Burnout Risk**: " + burnoutRisk + "\\n" +
+              "**Confidence**: " + Math.round(confidence * 100) + "%\\n\\n" +
+              "### 📈 Key Metrics\\n" +
+              "- **Total Commits**: " + analysisData.patterns.total_commits + "\\n" +
+              "- **Late Night Work**: " + analysisData.patterns.late_night_commits + " commits (" + analysisData.rates.late_night_rate + "%)\\n" +
+              "- **Weekend Work**: " + analysisData.patterns.weekend_commits + " commits (" + analysisData.rates.weekend_rate + "%)\\n" +
+              "- **Failed Workflows**: " + analysisData.patterns.failed_workflows + " (" + analysisData.rates.failure_rate + "%)\\n\\n" +
+              "### 👥 Developer Activity\\n" + developerActivity + "\\n\\n" +
+              "### ⚠️ Risk Indicators\\n" + riskIndicators + "\\n\\n" +
+              "### 💡 Recommendations\\n" + recommendations + "\\n\\n" +
+              "### 📋 Next Steps\\n" +
+              "1. Review team workload distribution\\n" +
+              "2. Implement recommended wellness measures\\n" +
+              "3. Schedule team check-in meeting\\n" +
+              "4. Monitor progress over next 2 weeks\\n\\n" +
+              "### 📊 Full Analysis\\n" +
+              "```json\\n" + JSON.stringify(aiAnalysis, null, 2) + "\\n```\\n\\n" +
+              "---\\n" +
+              "*This issue was automatically created by the AI Burnout Detector workflow.*";
 
             // Create the issue
             const issue = await github.rest.issues.create({
@@ -506,70 +483,51 @@ ${JSON.stringify(aiAnalysis, null, 2)}
             subjectPrefix = '✅ INFO';
           }
           
-          const subject = `${subjectPrefix}: Team Wellness Alert - ${analysisData.repository}`;
+          const subject = subjectPrefix + ": Team Wellness Alert - " + analysisData.repository;
           
-          const htmlBody = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-              .metric { background-color: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 3px; }
-              .recommendation { background-color: #d4edda; padding: 10px; margin: 5px 0; border-radius: 3px; }
-              .risk { background-color: #f8d7da; padding: 10px; margin: 5px 0; border-radius: 3px; }
-              .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>📊 Team Wellness ${emailType} Alert</h2>
-              <p><strong>Repository:</strong> ${analysisData.repository}</p>
-              <p><strong>Analysis Date:</strong> ${new Date().toISOString().split('T')[0]}</p>
-            </div>
+          const riskIndicatorsHtml = aiAnalysis.risk_indicators ? 
+            aiAnalysis.risk_indicators.map(indicator => "<li>" + indicator + "</li>").join('') : 
+            '<li>No specific indicators identified</li>';
             
-            <div class="metric">
-              <h3>📈 Key Metrics</h3>
-              <ul>
-                <li><strong>Team Health Score:</strong> ${healthScore}/100</li>
-                <li><strong>Burnout Risk:</strong> ${burnoutRisk}</li>
-                <li><strong>Confidence:</strong> ${Math.round(confidence * 100)}%</li>
-                <li><strong>Total Commits:</strong> ${analysisData.patterns.total_commits}</li>
-                <li><strong>Late Night Work:</strong> ${analysisData.patterns.late_night_commits} commits (${analysisData.rates.late_night_rate}%)</li>
-                <li><strong>Weekend Work:</strong> ${analysisData.patterns.weekend_commits} commits (${analysisData.rates.weekend_rate}%)</li>
-                <li><strong>Failed Workflows:</strong> ${analysisData.patterns.failed_workflows} (${analysisData.rates.failure_rate}%)</li>
-              </ul>
-            </div>
+          const recommendationsHtml = aiAnalysis.recommendations ? 
+            aiAnalysis.recommendations.map(rec => "<li>" + rec + "</li>").join('') : 
+            '<li>Monitor team activity patterns</li>';
             
-            <div class="risk">
-              <h3>⚠️ Risk Indicators</h3>
-              <ul>
-                ${aiAnalysis.risk_indicators ? aiAnalysis.risk_indicators.map(indicator => `<li>${indicator}</li>`).join('') : '<li>No specific indicators identified</li>'}
-              </ul>
-            </div>
-            
-            <div class="recommendation">
-              <h3>💡 Recommendations</h3>
-              <ul>
-                ${aiAnalysis.recommendations ? aiAnalysis.recommendations.map(rec => `<li>${rec}</li>`).join('') : '<li>Monitor team activity patterns</li>'}
-              </ul>
-            </div>
-            
-            <div class="metric">
-              <h3>👥 Developer Activity</h3>
-              <ul>
-                ${Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
-                  `<li><strong>${author}:</strong> ${data.commits} commits (${data.late_night} late-night, ${data.weekend} weekend)</li>`
-                ).join('')}
-              </ul>
-            </div>
-            
-            <div class="footer">
-              <p>This email was automatically generated by the AI Burnout Detector workflow.</p>
-              <p>For questions or concerns, please contact the development team.</p>
-            </div>
-          </body>
-          </html>`;
+          const developerActivityHtml = Object.entries(analysisData.patterns.developer_activity).map(([author, data]) => 
+            "<li><strong>" + author + ":</strong> " + data.commits + " commits (" + data.late_night + " late-night, " + data.weekend + " weekend)</li>"
+          ).join('');
+          
+          const htmlBody = "<!DOCTYPE html>" +
+            "<html><head><style>" +
+            "body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }" +
+            ".header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }" +
+            ".metric { background-color: #e9ecef; padding: 10px; margin: 5px 0; border-radius: 3px; }" +
+            ".recommendation { background-color: #d4edda; padding: 10px; margin: 5px 0; border-radius: 3px; }" +
+            ".risk { background-color: #f8d7da; padding: 10px; margin: 5px 0; border-radius: 3px; }" +
+            ".footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6; font-size: 0.9em; color: #6c757d; }" +
+            "</style></head><body>" +
+            "<div class='header'>" +
+            "<h2>📊 Team Wellness " + emailType + " Alert</h2>" +
+            "<p><strong>Repository:</strong> " + analysisData.repository + "</p>" +
+            "<p><strong>Analysis Date:</strong> " + new Date().toISOString().split('T')[0] + "</p>" +
+            "</div>" +
+            "<div class='metric'>" +
+            "<h3>📈 Key Metrics</h3><ul>" +
+            "<li><strong>Team Health Score:</strong> " + healthScore + "/100</li>" +
+            "<li><strong>Burnout Risk:</strong> " + burnoutRisk + "</li>" +
+            "<li><strong>Confidence:</strong> " + Math.round(confidence * 100) + "%</li>" +
+            "<li><strong>Total Commits:</strong> " + analysisData.patterns.total_commits + "</li>" +
+            "<li><strong>Late Night Work:</strong> " + analysisData.patterns.late_night_commits + " commits (" + analysisData.rates.late_night_rate + "%)</li>" +
+            "<li><strong>Weekend Work:</strong> " + analysisData.patterns.weekend_commits + " commits (" + analysisData.rates.weekend_rate + "%)</li>" +
+            "<li><strong>Failed Workflows:</strong> " + analysisData.patterns.failed_workflows + " (" + analysisData.rates.failure_rate + "%)</li>" +
+            "</ul></div>" +
+            "<div class='risk'><h3>⚠️ Risk Indicators</h3><ul>" + riskIndicatorsHtml + "</ul></div>" +
+            "<div class='recommendation'><h3>💡 Recommendations</h3><ul>" + recommendationsHtml + "</ul></div>" +
+            "<div class='metric'><h3>👥 Developer Activity</h3><ul>" + developerActivityHtml + "</ul></div>" +
+            "<div class='footer'>" +
+            "<p>This email was automatically generated by the AI Burnout Detector workflow.</p>" +
+            "<p>For questions or concerns, please contact the development team.</p>" +
+            "</div></body></html>";
           
           // Note: This is a placeholder for email sending
           // In a real implementation, you would use a service like SendGrid, AWS SES, or similar
@@ -615,5 +573,5 @@ ${JSON.stringify(aiAnalysis, null, 2)}
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Actions Taken" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ GitHub issue created" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Email report generated" >> $GITHUB_Step_SUMMARY
+          echo "- ✅ Email report generated" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Analysis artifacts uploaded" >> $GITHUB_STEP_SUMMARY
