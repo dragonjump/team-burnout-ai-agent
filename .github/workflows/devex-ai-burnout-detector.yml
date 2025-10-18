@@ -93,7 +93,7 @@ jobs:
                 }
               );
               
-              // Fetch pull requests
+              // Fetch pull requests 
               const prsResponse = await axios.get(
                 `https://api.github.com/repos/${owner}/${repo}/pulls`,
                 {
@@ -224,13 +224,13 @@ jobs:
           
           // Set outputs for GitHub Actions
           const outputFile = process.env.GITHUB_OUTPUT;
-          fs.appendFileSync(outputFile, "total_commits=" + patterns.total_commits + "\\n");
-          fs.appendFileSync(outputFile, "late_night_commits=" + patterns.late_night_commits + "\\n");
-          fs.appendFileSync(outputFile, "weekend_commits=" + patterns.weekend_commits + "\\n");
-          fs.appendFileSync(outputFile, "failed_workflows=" + patterns.failed_workflows + "\\n");
-          fs.appendFileSync(outputFile, "late_night_rate=" + lateNightRate.toFixed(1) + "\\n");
-          fs.appendFileSync(outputFile, "weekend_rate=" + weekendRate.toFixed(1) + "\\n");
-          fs.appendFileSync(outputFile, "failure_rate=" + failureRate.toFixed(1) + "\\n");
+          fs.appendFileSync(outputFile, "total_commits=" + patterns.total_commits + "\n");
+          fs.appendFileSync(outputFile, "late_night_commits=" + patterns.late_night_commits + "\n");
+          fs.appendFileSync(outputFile, "weekend_commits=" + patterns.weekend_commits + "\n");
+          fs.appendFileSync(outputFile, "failed_workflows=" + patterns.failed_workflows + "\n");
+          fs.appendFileSync(outputFile, "late_night_rate=" + lateNightRate.toFixed(1) + "\n");
+          fs.appendFileSync(outputFile, "weekend_rate=" + weekendRate.toFixed(1) + "\n");
+          fs.appendFileSync(outputFile, "failure_rate=" + failureRate.toFixed(1) + "\n");
           
           console.log('Pattern analysis completed successfully');
           EOF
@@ -265,9 +265,9 @@ jobs:
             fs.writeFileSync('ai-analysis.json', JSON.stringify(mockAnalysis, null, 2));
             
             const outputFile = process.env.GITHUB_OUTPUT;
-            fs.appendFileSync(outputFile, "burnout_risk=Low\\n");
-            fs.appendFileSync(outputFile, "team_health_score=75\\n");
-            fs.appendFileSync(outputFile, "confidence=0.8\\n");
+            fs.appendFileSync(outputFile, "burnout_risk=Low\n");
+            fs.appendFileSync(outputFile, "team_health_score=75\n");
+            fs.appendFileSync(outputFile, "confidence=0.8\n");
             console.log('Mock analysis completed');
             process.exit(0);
           }
@@ -278,28 +278,28 @@ jobs:
           
           const systemPrompt = "You are a professional team wellness and burnout detection agent with strict guardrails. Your role is to analyze developer workload patterns and provide objective, evidence-based assessments.\n\nYou must ALWAYS respond with valid JSON format and follow these strict guidelines:\n1. NEVER make personal judgments or assumptions about individual developers\n2. ONLY analyze observable patterns in code activity data\n3. ALWAYS provide evidence-based reasoning for all assessments\n4. NEVER suggest disciplinary actions or performance reviews\n5. FOCUS on systemic issues and team-level recommendations\n6. ALWAYS include confidence scores and data limitations\n7. RESPECT privacy and confidentiality of team members\n8. PROVIDE actionable, constructive recommendations only\n9. AVOID alarmist language - use professional, measured tone\n10. ALWAYS structure responses with clear sections and evidence\n\nYour analysis must be objective, professional, and focused on improving team wellness through positive interventions.";
           
-          const prompt = "📊 Team Wellness and Burnout Risk Analysis\\n\\n" +
-            "**Project**: " + analysisData.repository + "\\n" +
-            "**Analysis Period**: " + analysisData.analysis_period_days + " days\\n\\n" +
-            "## 📈 Team Activity Metrics\\n" +
-            "- **Total Commits**: " + analysisData.patterns.total_commits + "\\n" +
-            "- **Total Pull Requests**: " + analysisData.patterns.total_prs + "\\n" +
-            "- **Total Workflows**: " + analysisData.patterns.total_workflows + "\\n" +
-            "- **Late Night Commits** (10PM-6AM): " + analysisData.patterns.late_night_commits + "\\n" +
-            "- **Weekend Commits**: " + analysisData.patterns.weekend_commits + "\\n" +
-            "- **Failed Workflows**: " + analysisData.patterns.failed_workflows + "\\n\\n" +
-            "## 📊 Performance Rates\\n" +
-            "- **Workflow Failure Rate**: " + analysisData.rates.failure_rate + "%\\n" +
-            "- **Late Night Work Rate**: " + analysisData.rates.late_night_rate + "%\\n" +
-            "- **Weekend Work Rate**: " + analysisData.rates.weekend_rate + "%\\n\\n" +
-            "## 👥 Developer Activity Breakdown\\n" +
-            JSON.stringify(analysisData.patterns.developer_activity, null, 2) + "\\n\\n" +
-            "Please analyze and provide:\\n" +
-            "1. **Burnout Risk Assessment** (Low/Medium/High) with detailed reasoning\\n" +
-            "2. **Team Health Score** (0-100) with explanation\\n" +
-            "3. **Key Risk Indicators** with specific examples\\n" +
-            "4. **Actionable Recommendations** (minimum 5 specific recommendations)\\n" +
-            "5. **Confidence Level** (0-1) with data limitations\\n\\n" +
+          const prompt = "📊 Team Wellness and Burnout Risk Analysis\n\n" +
+            "**Project**: " + analysisData.repository + "\n" +
+            "**Analysis Period**: " + analysisData.analysis_period_days + " days\n\n" +
+            "## 📈 Team Activity Metrics\n" +
+            "- **Total Commits**: " + analysisData.patterns.total_commits + "\n" +
+            "- **Total Pull Requests**: " + analysisData.patterns.total_prs + "\n" +
+            "- **Total Workflows**: " + analysisData.patterns.total_workflows + "\n" +
+            "- **Late Night Commits** (10PM-6AM): " + analysisData.patterns.late_night_commits + "\n" +
+            "- **Weekend Commits**: " + analysisData.patterns.weekend_commits + "\n" +
+            "- **Failed Workflows**: " + analysisData.patterns.failed_workflows + "\n\n" +
+            "## 📊 Performance Rates\n" +
+            "- **Workflow Failure Rate**: " + analysisData.rates.failure_rate + "%\n" +
+            "- **Late Night Work Rate**: " + analysisData.rates.late_night_rate + "%\n" +
+            "- **Weekend Work Rate**: " + analysisData.rates.weekend_rate + "%\n\n" +
+            "## 👥 Developer Activity Breakdown\n" +
+            JSON.stringify(analysisData.patterns.developer_activity, null, 2) + "\n\n" +
+            "Please analyze and provide:\n" +
+            "1. **Burnout Risk Assessment** (Low/Medium/High) with detailed reasoning\n" +
+            "2. **Team Health Score** (0-100) with explanation\n" +
+            "3. **Key Risk Indicators** with specific examples\n" +
+            "4. **Actionable Recommendations** (minimum 5 specific recommendations)\n" +
+            "5. **Confidence Level** (0-1) with data limitations\n\n" +
             "Format as JSON with structured sections.";
 
           async function runAnalysis() {
@@ -348,9 +348,9 @@ jobs:
               
               // Set outputs for GitHub Actions
               const outputFile = process.env.GITHUB_OUTPUT;
-              fs.appendFileSync(outputFile, "burnout_risk=" + (analysis.burnout_risk || 'Medium') + "\\n");
-              fs.appendFileSync(outputFile, "team_health_score=" + (analysis.team_health_score || 70) + "\\n");
-              fs.appendFileSync(outputFile, "confidence=" + (analysis.confidence || 0.7) + "\\n");
+              fs.appendFileSync(outputFile, "burnout_risk=" + (analysis.burnout_risk || 'Medium') + "\n");
+              fs.appendFileSync(outputFile, "team_health_score=" + (analysis.team_health_score || 70) + "\n");
+              fs.appendFileSync(outputFile, "confidence=" + (analysis.confidence || 0.7) + "\n");
               
               console.log('AI analysis completed successfully');
               
@@ -367,9 +367,9 @@ jobs:
               fs.writeFileSync('ai-analysis.json', JSON.stringify(fallbackAnalysis, null, 2));
               
               const outputFile = process.env.GITHUB_OUTPUT;
-              fs.appendFileSync(outputFile, "burnout_risk=Medium\\n");
-              fs.appendFileSync(outputFile, "team_health_score=70\\n");
-              fs.appendFileSync(outputFile, "confidence=0.5\\n");
+              fs.appendFileSync(outputFile, "burnout_risk=Medium\n");
+              fs.appendFileSync(outputFile, "team_health_score=70\n");
+              fs.appendFileSync(outputFile, "confidence=0.5\n");
             }
           }
           
@@ -549,8 +549,7 @@ jobs:
           fs.writeFileSync('email-report.html', htmlBody);
           console.log('Email report saved to email-report.html');
           EOF
-        env:
-          EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
+        
 
       - name: Upload Artifacts
         if: always()
