@@ -1,20 +1,37 @@
-name: AI Burnout Detector - Team Wellness Analysis
+name: '🧘‍♀️ AI Burnout Detector - Team Wellness Analysis'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types:
+      - 'opened'
+      - 'synchronize'
+      - 'reopened'
   workflow_dispatch:
     inputs:
       analysis_period:
         description: 'Analysis period in days'
         required: false
         default: '7'
-        type: string
+        type: 'string'
       email_recipient:
         description: 'Email recipient for reports'
         required: false
         default: 'team-leads@company.com'
-        type: string
+        type: 'string'
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+permissions:
+  contents: 'read'
+  issues: 'write'
+  pull-requests: 'read'
+  actions: 'read'
 
 env:
   ANALYSIS_PERIOD: ${{ inputs.analysis_period || '7' }}
@@ -25,12 +42,14 @@ env:
 
 jobs:
   analyze-team-wellness:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: read
-      actions: read
+    if: |-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+      )
+    timeout-minutes: 10
+    runs-on: 'ubuntu-latest'
     
     steps:
       - name: Checkout repository
