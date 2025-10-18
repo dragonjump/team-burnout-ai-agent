@@ -224,13 +224,13 @@ jobs:
           
           // Set outputs for GitHub Actions
           const outputFile = process.env.GITHUB_OUTPUT;
-          fs.appendFileSync(outputFile, `total_commits=${patterns.total_commits}\n`);
-          fs.appendFileSync(outputFile, `late_night_commits=${patterns.late_night_commits}\n`);
-          fs.appendFileSync(outputFile, `weekend_commits=${patterns.weekend_commits}\n`);
-          fs.appendFileSync(outputFile, `failed_workflows=${patterns.failed_workflows}\n`);
-          fs.appendFileSync(outputFile, `late_night_rate=${lateNightRate.toFixed(1)}\n`);
-          fs.appendFileSync(outputFile, `weekend_rate=${weekendRate.toFixed(1)}\n`);
-          fs.appendFileSync(outputFile, `failure_rate=${failureRate.toFixed(1)}\n`);
+          fs.appendFileSync(outputFile, "total_commits=" + patterns.total_commits + "\\n");
+          fs.appendFileSync(outputFile, "late_night_commits=" + patterns.late_night_commits + "\\n");
+          fs.appendFileSync(outputFile, "weekend_commits=" + patterns.weekend_commits + "\\n");
+          fs.appendFileSync(outputFile, "failed_workflows=" + patterns.failed_workflows + "\\n");
+          fs.appendFileSync(outputFile, "late_night_rate=" + lateNightRate.toFixed(1) + "\\n");
+          fs.appendFileSync(outputFile, "weekend_rate=" + weekendRate.toFixed(1) + "\\n");
+          fs.appendFileSync(outputFile, "failure_rate=" + failureRate.toFixed(1) + "\\n");
           
           console.log('Pattern analysis completed successfully');
           EOF
@@ -265,10 +265,11 @@ jobs:
             fs.writeFileSync('ai-analysis.json', JSON.stringify(mockAnalysis, null, 2));
             
             const outputFile = process.env.GITHUB_OUTPUT;
-            fs.appendFileSync(outputFile, `burnout_risk=Low\n`);
-            fs.appendFileSync(outputFile, `team_health_score=75\n`);
-            fs.appendFileSync(outputFile, `confidence=0.8\n`);
-            return;
+            fs.appendFileSync(outputFile, "burnout_risk=Low\\n");
+            fs.appendFileSync(outputFile, "team_health_score=75\\n");
+            fs.appendFileSync(outputFile, "confidence=0.8\\n");
+            console.log('Mock analysis completed');
+            process.exit(0);
           }
           
           const groq = new Groq({
@@ -347,9 +348,9 @@ jobs:
               
               // Set outputs for GitHub Actions
               const outputFile = process.env.GITHUB_OUTPUT;
-              fs.appendFileSync(outputFile, `burnout_risk=${analysis.burnout_risk || 'Medium'}\n`);
-              fs.appendFileSync(outputFile, `team_health_score=${analysis.team_health_score || 70}\n`);
-              fs.appendFileSync(outputFile, `confidence=${analysis.confidence || 0.7}\n`);
+              fs.appendFileSync(outputFile, "burnout_risk=" + (analysis.burnout_risk || 'Medium') + "\\n");
+              fs.appendFileSync(outputFile, "team_health_score=" + (analysis.team_health_score || 70) + "\\n");
+              fs.appendFileSync(outputFile, "confidence=" + (analysis.confidence || 0.7) + "\\n");
               
               console.log('AI analysis completed successfully');
               
@@ -366,9 +367,9 @@ jobs:
               fs.writeFileSync('ai-analysis.json', JSON.stringify(fallbackAnalysis, null, 2));
               
               const outputFile = process.env.GITHUB_OUTPUT;
-              fs.appendFileSync(outputFile, `burnout_risk=Medium\n`);
-              fs.appendFileSync(outputFile, `team_health_score=70\n`);
-              fs.appendFileSync(outputFile, `confidence=0.5\n`);
+              fs.appendFileSync(outputFile, "burnout_risk=Medium\\n");
+              fs.appendFileSync(outputFile, "team_health_score=70\\n");
+              fs.appendFileSync(outputFile, "confidence=0.5\\n");
             }
           }
           
@@ -380,15 +381,19 @@ jobs:
       - name: Create GitHub Issue
         if: always()
         uses: actions/github-script@v7
+        env:
+          HEALTH_SCORE: ${{ steps.ai-analysis.outputs.team_health_score }}
+          BURNOUT_RISK: ${{ steps.ai-analysis.outputs.burnout_risk }}
+          CONFIDENCE: ${{ steps.ai-analysis.outputs.confidence }}
         with:
           script: |
             const fs = require('fs');
             const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
             const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
             
-            const healthScore = ${{ steps.ai-analysis.outputs.team_health_score }};
-            const burnoutRisk = '${{ steps.ai-analysis.outputs.burnout_risk }}';
-            const confidence = ${{ steps.ai-analysis.outputs.confidence }};
+            const healthScore = process.env.HEALTH_SCORE;
+            const burnoutRisk = process.env.BURNOUT_RISK;
+            const confidence = process.env.CONFIDENCE;
             
             // Determine issue type based on health score
             let issueType, emoji, labels;
@@ -453,11 +458,16 @@ jobs:
               labels: labels
             });
             
-            console.log(`Created issue: ${issue.data.html_url}`);
+            console.log("Created issue: " + issue.data.html_url);
             return issue.data.html_url;
 
       - name: Send Email Report
         if: always()
+        env:
+          EMAIL_RECIPIENT: ${{ env.EMAIL_RECIPIENT }}
+          HEALTH_SCORE: ${{ steps.ai-analysis.outputs.team_health_score }}
+          BURNOUT_RISK: ${{ steps.ai-analysis.outputs.burnout_risk }}
+          CONFIDENCE: ${{ steps.ai-analysis.outputs.confidence }}
         run: |
           node << 'EOF'
           const fs = require('fs');
@@ -466,9 +476,9 @@ jobs:
           const analysisData = JSON.parse(fs.readFileSync('analysis-data.json', 'utf8'));
           const aiAnalysis = JSON.parse(fs.readFileSync('ai-analysis.json', 'utf8'));
           
-          const healthScore = ${{ steps.ai-analysis.outputs.team_health_score }};
-          const burnoutRisk = '${{ steps.ai-analysis.outputs.burnout_risk }}';
-          const confidence = ${{ steps.ai-analysis.outputs.confidence }};
+          const healthScore = process.env.HEALTH_SCORE;
+          const burnoutRisk = process.env.BURNOUT_RISK;
+          const confidence = process.env.CONFIDENCE;
           
           // Determine email type based on health score
           let emailType, subjectPrefix;
